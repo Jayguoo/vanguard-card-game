@@ -1,0 +1,117 @@
+.damage-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 6px 4px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.damage-zone__label {
+  font-size: 8px;
+  color: rgba(200, 200, 220, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.damage-zone__count-badge {
+  background: rgba(0, 180, 255, 0.1);
+  border: 1px solid rgba(0, 180, 255, 0.2);
+  border-radius: 10px;
+  padding: 1px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.damage-zone__count {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(0, 200, 255, 0.9);
+  text-shadow: 0 0 6px rgba(0, 200, 255, 0.3);
+}
+
+/* Danger state at 5+ damage */
+.damage-zone--danger .damage-zone__count-badge {
+  background: rgba(255, 30, 30, 0.2);
+  border-color: rgba(255, 30, 30, 0.5);
+  box-shadow: 0 0 10px rgba(255, 30, 30, 0.3);
+  animation: damage-danger-pulse 1.5s ease-in-out infinite;
+}
+
+.damage-zone--danger .damage-zone__count {
+  color: #ff3333;
+  text-shadow: 0 0 8px rgba(255, 30, 30, 0.5);
+}
+
+.damage-zone--danger .damage-zone__label {
+  color: rgba(255, 80, 80, 0.7);
+}
+
+.damage-zone--danger {
+  border-color: rgba(255, 30, 30, 0.3);
+  box-shadow: 0 0 12px rgba(255, 30, 30, 0.15);
+}
+
+.damage-zone__stack {
+  position: relative;
+  width: 112px;
+  /* Default height for empty or 1 card; JS sets height dynamically via style */
+  min-height: 80px;
+}
+
+.damage-zone__card {
+  position: absolute;
+  left: 0;
+  width: 112px;
+  height: 80px;
+  transition: top 0.2s ease;
+}
+
+.damage-zone__card .vg-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  animation: damage-card-in 0.3s ease-out both;
+}
+
+@keyframes damage-card-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(90deg) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(90deg) translateY(0);
+  }
+}
+
+.damage-zone__empty {
+  width: 112px;
+  height: 80px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.01);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  user-select: none;
+}
+
+@keyframes damage-danger-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 30, 30, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 30, 30, 0.6);
+  }
+}

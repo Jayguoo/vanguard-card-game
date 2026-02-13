@@ -1,0 +1,59 @@
+.hand-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  position: relative;
+}
+
+.hand-area__cards {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  position: relative;
+  padding: 4px 40px;
+}
+
+.hand-area__card-wrapper {
+  position: relative;
+  transition: transform 0.2s ease, z-index 0s;
+  transform-origin: bottom center;
+  flex-shrink: 0;
+  margin: 0 -12px;
+}
+
+.hand-area__card-wrapper:hover {
+  z-index: 100 !important;
+  filter: brightness(1.1);
+}
+
+.hand-area__card-wrapper--selected {
+  z-index: 99 !important;
+}
+
+/* New card entering hand animation */
+.hand-area__card-wrapper--entering {
+  animation: card-enter-hand 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes card-enter-hand {
+  from {
+    opacity: 0;
+    transform: translateY(-40px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hand-area__count {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(0, 200, 255, 0.5);
+  background: rgba(0, 180, 255, 0.06);
+  border: 1px solid rgba(0, 180, 255, 0.1);
+  border-radius: 8px;
+  padding: 1px 10px;
+  user-select: none;
+}

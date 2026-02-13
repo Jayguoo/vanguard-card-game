@@ -1,23 +1,28 @@
-# Server Dockerfile for Railway/Render deployment
+# Server Dockerfile for Render deployment
+# Build context should be the repo root (card-game/card-game/), NOT server/
+# On Render: Root Directory = card-game/card-game, Docker Context = .
+
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
+# Copy shared directory first (needed for tsc compilation)
+COPY shared/ ./shared/
 
-# Install dependencies
+# Install server dependencies
+COPY server/package*.json ./server/
+WORKDIR /app/server
 RUN npm install
 
-# Copy source code
-COPY . .
+# Copy server source
+COPY server/tsconfig.json ./
+COPY server/index.ts ./
+COPY server/roomManager.ts ./
+COPY server/game/ ./game/
 
-# Build TypeScript
+# Build TypeScript (rootDir=".." resolves ../shared/ to /app/shared/)
 RUN npm run build
 
-# Expose port
 EXPOSE 3001
 
-# Start server
-CMD ["npm", "start"]
+CMD ["node", "dist/server/index.js"]

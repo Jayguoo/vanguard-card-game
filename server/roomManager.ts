@@ -1,41 +1,30 @@
-import { GameRoom, Player, PublicGameRoom, PublicPlayer } from '../shared/types';
+import { GameRoom, RoomPlayer, PublicGameRoom, DeckId } from '../shared/types';
 import { nanoid } from 'nanoid';
 
-// In-memory room storage (use Redis/DB for production)
 const rooms = new Map<string, GameRoom>();
-
-// Map socket IDs to room IDs for quick lookup
 const playerRooms = new Map<string, string>();
 
-/**
- * Generate a short, readable room code
- */
 function generateRoomCode(): string {
   return nanoid(6).toUpperCase();
 }
 
-/**
- * Create a new game room
- */
 export function createRoom(hostId: string, hostName: string): GameRoom {
   const roomId = generateRoomCode();
 
-  const host: Player = {
+  const host: RoomPlayer = {
     id: hostId,
     name: hostName,
-    hand: [],
+    deckId: null,
     isHost: true,
     isConnected: true,
+    isReady: false,
   };
 
   const room: GameRoom = {
     id: roomId,
     players: [host],
-    gameState: 'waiting',
-    currentPlayerIndex: 0,
-    deck: [],
-    discardPile: [],
-    maxPlayers: 4,
+    roomState: 'waiting',
+    maxPlayers: 2,
   };
 
   rooms.set(roomId, room);
@@ -45,51 +34,41 @@ export function createRoom(hostId: string, hostName: string): GameRoom {
   return room;
 }
 
-/**
- * Join an existing room
- */
 export function joinRoom(
   roomId: string,
   playerId: string,
-  playerName: string
-): { room: GameRoom; player: Player } | { error: string } {
+  playerName: string,
+): { room: GameRoom; player: RoomPlayer } | { error: string } {
   const room = rooms.get(roomId.toUpperCase());
+  if (!room) return { error: 'Room not found' };
+  if (room.roomState !== 'waiting') return { error: 'Game already in progress' };
+  if (room.players.length >= room.maxPlayers) return { error: 'Room is full' };
 
-  if (!room) {
-    return { error: 'Room not found' };
-  }
-
-  if (room.gameState !== 'waiting') {
-    return { error: 'Game already in progress' };
-  }
-
-  if (room.players.length >= room.maxPlayers) {
-    return { error: 'Room is full' };
-  }
-
-  // Check if player name is already taken
-  if (room.players.some((p) => p.name.toLowerCase() === playerName.toLowerCase())) {
+  if (room.players.some((p: RoomPlayer) => p.name.toLowerCase() === playerName.toLowerCase())) {
     return { error: 'Name already taken in this room' };
   }
 
-  const player: Player = {
+  const player: RoomPlayer = {
     id: playerId,
     name: playerName,
-    hand: [],
+    deckId: null,
     isHost: false,
     isConnected: true,
+    isReady: false,
   };
 
   room.players.push(player);
   playerRooms.set(playerId, roomId);
 
+  // When 2 players are in, move to deck select
+  if (room.players.length === 2) {
+    room.roomState = 'deck-select';
+  }
+
   console.log(`${playerName} joined room ${roomId}`);
   return { room, player };
 }
 
-/**
- * Remove a player from their room
- */
 export function leaveRoom(playerId: string): { room: GameRoom; wasHost: boolean } | null {
   const roomId = playerRooms.get(playerId);
   if (!roomId) return null;
@@ -97,106 +76,86 @@ export function leaveRoom(playerId: string): { room: GameRoom; wasHost: boolean 
   const room = rooms.get(roomId);
   if (!room) return null;
 
-  const playerIndex = room.players.findIndex((p) => p.id === playerId);
-  if (playerIndex === -1) return null;
+  const playerIdx = room.players.findIndex((p: RoomPlayer) => p.id === playerId);
+  if (playerIdx === -1) return null;
 
-  const player = room.players[playerIndex];
-  const wasHost = player.isHost;
-
-  // Remove player
-  room.players.splice(playerIndex, 1);
+  const wasHost = room.players[playerIdx].isHost;
+  room.players.splice(playerIdx, 1);
   playerRooms.delete(playerId);
 
-  console.log(`${player.name} left room ${roomId}`);
-
-  // If room is empty, delete it
   if (room.players.length === 0) {
     rooms.delete(roomId);
     console.log(`Room ${roomId} deleted (empty)`);
     return null;
   }
 
-  // If host left, assign new host
   if (wasHost && room.players.length > 0) {
     room.players[0].isHost = true;
-    console.log(`${room.players[0].name} is now host of room ${roomId}`);
   }
 
-  // Adjust current player index if needed
-  if (room.currentPlayerIndex >= room.players.length) {
-    room.currentPlayerIndex = 0;
+  if (room.roomState === 'playing' && room.players.length < 2) {
+    room.roomState = 'finished';
+  }
+
+  if (room.roomState === 'deck-select') {
+    room.roomState = 'waiting';
+    room.players.forEach((p: RoomPlayer) => { p.isReady = false; });
   }
 
   return { room, wasHost };
 }
 
-/**
- * Get a room by ID
- */
 export function getRoom(roomId: string): GameRoom | undefined {
   return rooms.get(roomId.toUpperCase());
 }
 
-/**
- * Get room by player ID
- */
 export function getRoomByPlayerId(playerId: string): GameRoom | undefined {
   const roomId = playerRooms.get(playerId);
   if (!roomId) return undefined;
   return rooms.get(roomId);
 }
 
-/**
- * Get a player from a room
- */
-export function getPlayer(room: GameRoom, playerId: string): Player | undefined {
-  return room.players.find((p) => p.id === playerId);
+export function getPlayer(room: GameRoom, playerId: string): RoomPlayer | undefined {
+  return room.players.find((p: RoomPlayer) => p.id === playerId);
 }
 
-/**
- * Convert room to public view (hides other players' hands)
- */
+export function setPlayerDeck(room: GameRoom, playerId: string, deckId: DeckId): boolean {
+  const player = room.players.find((p: RoomPlayer) => p.id === playerId);
+  if (!player) return false;
+
+  const otherHasDeck = room.players.some((p: RoomPlayer) => p.id !== playerId && p.deckId === deckId);
+  if (otherHasDeck) return false;
+
+  player.deckId = deckId;
+  return true;
+}
+
+export function setPlayerReady(room: GameRoom, playerId: string): boolean {
+  const player = room.players.find((p: RoomPlayer) => p.id === playerId);
+  if (!player || !player.deckId) return false;
+  player.isReady = true;
+  return true;
+}
+
+export function areAllPlayersReady(room: GameRoom): boolean {
+  return room.players.length === 2 &&
+    room.players.every((p: RoomPlayer) => p.isReady && p.deckId !== null);
+}
+
+export function setPlayerConnected(playerId: string, connected: boolean): void {
+  const roomId = playerRooms.get(playerId);
+  if (!roomId) return;
+  const room = rooms.get(roomId);
+  if (!room) return;
+  const player = room.players.find((p: RoomPlayer) => p.id === playerId);
+  if (player) player.isConnected = connected;
+}
+
 export function toPublicRoom(room: GameRoom): PublicGameRoom {
   return {
     id: room.id,
-    players: room.players.map(toPublicPlayer),
-    gameState: room.gameState,
-    currentPlayerId: room.players[room.currentPlayerIndex]?.id || null,
-    discardPile: room.discardPile,
-    deckCount: room.deck.length,
+    players: room.players,
+    roomState: room.roomState,
     maxPlayers: room.maxPlayers,
   };
-}
-
-/**
- * Convert player to public view (hides hand)
- */
-export function toPublicPlayer(player: Player): PublicPlayer {
-  return {
-    id: player.id,
-    name: player.name,
-    cardCount: player.hand.length,
-    isHost: player.isHost,
-    isConnected: player.isConnected,
-  };
-}
-
-/**
- * Mark player as disconnected (for reconnection support)
- */
-export function setPlayerConnected(playerId: string, connected: boolean): void {
-  const room = getRoomByPlayerId(playerId);
-  if (!room) return;
-
-  const player = getPlayer(room, playerId);
-  if (player) {
-    player.isConnected = connected;
-  }
-}
-
-/**
- * Get all rooms (for debugging)
- */
-export function getAllRooms(): GameRoom[] {
-  return Array.from(rooms.values());
 }

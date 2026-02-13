@@ -23,13 +23,10 @@ export const Lobby: React.FC<LobbyProps> = ({
       setError('Please enter your name');
       return;
     }
-
     setIsLoading(true);
     setError(null);
-
     const response = await onCreateRoom(playerName.trim());
     setIsLoading(false);
-
     if (!response.success) {
       setError(response.error || 'Failed to create room');
     }
@@ -40,43 +37,50 @@ export const Lobby: React.FC<LobbyProps> = ({
       setError('Please enter your name');
       return;
     }
-
     if (!roomCode.trim()) {
       setError('Please enter a room code');
       return;
     }
-
     setIsLoading(true);
     setError(null);
-
     const response = await onJoinRoom(roomCode.trim(), playerName.trim());
     setIsLoading(false);
-
     if (!response.success) {
       setError(response.error || 'Failed to join room');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      if (roomCode.trim()) handleJoin();
+      else handleCreate();
     }
   };
 
   return (
     <div className="lobby">
       <div className="lobby-card">
-        <h1>🃏 Card Game</h1>
-        <p className="subtitle">Real-time Multiplayer</p>
+        <div className="lobby-title">
+          <h1>CARDFIGHT!!</h1>
+          <h2>VANGUARD</h2>
+          <p className="subtitle">Online Card Battle</p>
+        </div>
 
         <div className="connection-status">
           <span className={`status-dot ${isConnected ? 'connected' : 'disconnected'}`} />
-          {isConnected ? 'Connected' : 'Connecting...'}
+          {isConnected ? 'Connected to Server' : 'Connecting...'}
         </div>
 
         {error && <div className="error-message">{error}</div>}
 
         <div className="form-group">
-          <label htmlFor="playerName">Your Name</label>
+          <label htmlFor="playerName">Fighter Name</label>
           <input
             id="playerName"
             type="text"
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Enter your name"
             maxLength={20}
             disabled={!isConnected || isLoading}
@@ -93,7 +97,7 @@ export const Lobby: React.FC<LobbyProps> = ({
           </button>
 
           <div className="divider">
-            <span>or join existing</span>
+            <span>or join a fight</span>
           </div>
 
           <div className="join-section">
@@ -101,6 +105,7 @@ export const Lobby: React.FC<LobbyProps> = ({
               type="text"
               value={roomCode}
               onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+              onKeyDown={handleKeyDown}
               placeholder="Room Code"
               maxLength={6}
               className="room-code-input"

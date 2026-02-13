@@ -1,0 +1,490 @@
+.vg-game {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0a0a0f;
+  color: white;
+  overflow: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.vg-game__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(0, 200, 255, 0.15);
+  z-index: 10;
+}
+
+.vg-game__leave-btn {
+  padding: 4px 12px;
+  background: rgba(255, 60, 60, 0.2);
+  border: 1px solid rgba(255, 60, 60, 0.4);
+  color: #ff8888;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.vg-game__leave-btn:hover {
+  background: rgba(255, 60, 60, 0.4);
+}
+
+.vg-game__error {
+  background: rgba(255, 60, 60, 0.3);
+  border: 1px solid rgba(255, 60, 60, 0.6);
+  color: #ffaaaa;
+  padding: 6px 16px;
+  text-align: center;
+  font-size: 13px;
+  animation: fadeIn 0.3s ease;
+}
+
+.vg-game__board {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: none; /* Firefox */
+  position: relative;
+  /* Playmat-style dark background with subtle tech pattern */
+  background:
+    radial-gradient(ellipse 600px 400px at 50% 50%, rgba(20, 40, 60, 0.4) 0%, transparent 100%),
+    linear-gradient(180deg, #080810 0%, #0c0c18 40%, #0c0c18 60%, #080810 100%);
+}
+
+.vg-game__board::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+/* Player side layout: Damage | Field | Deck+Drop */
+.vg-game__player-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 12px;
+  flex: 0 0 auto;
+}
+
+/* Opponent header (name + hand) above the field */
+.vg-game__opponent-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 12px 2px;
+  flex: 0 0 auto;
+}
+
+.vg-game__opponent-side {
+  border-bottom: 1px solid rgba(0, 180, 255, 0.08);
+}
+
+.vg-game__my-side {
+  border-top: 1px solid rgba(0, 180, 255, 0.08);
+}
+
+/* My footer (soul info) below the field */
+.vg-game__my-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 12px 4px;
+  flex: 0 0 auto;
+}
+
+.vg-game__field-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+/* Side zones (Damage on left, Deck+Drop on right) */
+.vg-game__side-zone {
+  flex: 0 0 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.vg-game__side-zone--left {
+  justify-content: flex-start;
+}
+
+.vg-game__side-zone--right {
+  justify-content: flex-start;
+}
+
+/* Guard zone between player fields */
+.vg-game__guard-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+  min-height: 100px;
+  border-top: 1px solid rgba(0, 180, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 180, 255, 0.1);
+  background: rgba(0, 20, 40, 0.3);
+}
+
+.vg-game__guard-zone-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: rgba(0, 200, 255, 0.2);
+}
+
+.vg-game__guardians {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.vg-game__guardian-card {
+  animation: guardian-enter 0.3s ease-out both;
+}
+
+.vg-game__guardian-card .vg-card {
+  transform: rotate(90deg);
+}
+
+@keyframes guardian-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.vg-game__opponent-info,
+.vg-game__my-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.vg-game__player-name {
+  font-weight: bold;
+  color: #6ec8ff;
+  font-size: 13px;
+  text-shadow: 0 0 8px rgba(100, 180, 255, 0.3);
+}
+
+.vg-game__opponent-hand {
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.vg-game__opponent-hand-card {
+  position: relative;
+}
+
+.vg-game__hand-area {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  padding: 4px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(0, 180, 255, 0.1);
+}
+
+.vg-game__action-area {
+  position: fixed;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  width: 220px;
+}
+
+.vg-game__log {
+  position: fixed;
+  right: 8px;
+  bottom: 120px;
+  width: 260px;
+  max-height: 200px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+/* Overlay for game over / trigger reveals */
+.vg-game__overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.5s ease;
+}
+
+.vg-game__game-over {
+  text-align: center;
+  padding: 40px 60px;
+  background: linear-gradient(135deg, #0a1020 0%, #1a0a30 100%);
+  border-radius: 16px;
+  border: 2px solid rgba(255, 215, 0, 0.5);
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.2), 0 0 80px rgba(255, 215, 0, 0.1);
+}
+
+.vg-game__game-over h1 {
+  font-size: 48px;
+  margin: 0 0 12px;
+  background: linear-gradient(to bottom, #ffd700, #ffaa00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.vg-game__game-over p {
+  font-size: 18px;
+  color: #aaaacc;
+  margin-bottom: 24px;
+}
+
+.vg-game__game-over button {
+  padding: 10px 28px;
+  background: linear-gradient(135deg, #3333aa, #5533cc);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.vg-game__game-over button:hover {
+  transform: scale(1.05);
+}
+
+/* Damage flash overlay - red edge flash when taking damage */
+.vg-game__damage-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(255, 20, 20, 0.35) 100%);
+  animation: damage-edge-flash 0.5s ease-out forwards;
+}
+
+@keyframes damage-edge-flash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Card preview panel - left side */
+.vg-game__card-preview {
+  position: fixed;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  cursor: pointer;
+  animation: preview-in 0.2s ease-out;
+}
+
+.vg-game__card-preview-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 12, 20, 0.95);
+  border: 1px solid rgba(0, 180, 255, 0.3);
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 0 20px rgba(0, 120, 255, 0.2);
+}
+
+.vg-game__card-preview-image {
+  width: 250px;
+  height: 350px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.vg-game__card-preview-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 250px;
+}
+
+.vg-game__card-preview-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ddeeff;
+  text-align: center;
+}
+
+.vg-game__card-preview-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: #8ab4d8;
+}
+
+.vg-game__card-preview-trigger {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffcc00;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+@keyframes preview-in {
+  from { opacity: 0; transform: translateY(-50%) translateX(-10px); }
+  to { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+/* Zone list preview panel - left side */
+.vg-game__zone-preview {
+  position: fixed;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 55;
+  animation: preview-in 0.2s ease-out;
+}
+
+.vg-game__zone-preview-inner {
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 12, 20, 0.95);
+  border: 1px solid rgba(0, 180, 255, 0.3);
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 0 20px rgba(0, 120, 255, 0.2);
+  max-height: 80vh;
+  width: 240px;
+}
+
+.vg-game__zone-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 180, 255, 0.15);
+}
+
+.vg-game__zone-preview-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #8ab4d8;
+}
+
+.vg-game__zone-preview-close {
+  background: none;
+  border: none;
+  color: rgba(200, 200, 220, 0.5);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.vg-game__zone-preview-close:hover {
+  color: #ff8888;
+  background: rgba(255, 60, 60, 0.15);
+}
+
+.vg-game__zone-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 180, 255, 0.2) transparent;
+}
+
+.vg-game__zone-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.vg-game__zone-preview-card:hover {
+  background: rgba(0, 180, 255, 0.08);
+  border-color: rgba(0, 180, 255, 0.15);
+}
+
+.vg-game__zone-preview-card--clickable {
+  cursor: pointer;
+  border-color: rgba(50, 220, 100, 0.3);
+}
+
+.vg-game__zone-preview-card--clickable:hover {
+  background: rgba(50, 220, 100, 0.15);
+  border-color: rgba(50, 220, 100, 0.5);
+  box-shadow: 0 0 8px rgba(50, 220, 100, 0.2);
+}
+
+.vg-game__zone-preview-card-image {
+  width: 60px;
+  height: 84px;
+  object-fit: contain;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.vg-game__zone-preview-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vg-game__zone-preview-card-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ddeeff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vg-game__zone-preview-card-stats {
+  font-size: 10px;
+  color: rgba(150, 170, 200, 0.7);
+}
+
+.vg-game__zone-preview-empty {
+  text-align: center;
+  padding: 20px 0;
+  color: rgba(200, 200, 220, 0.3);
+  font-size: 13px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

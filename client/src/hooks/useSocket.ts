@@ -3,37 +3,36 @@ import { io, Socket } from 'socket.io-client';
 import {
   ClientToServerEvents,
   ServerToClientEvents,
-  Card,
   PublicGameRoom,
+  PublicVanguardGameState,
   RoomResponse,
+  DeckId,
+  GameAction,
+  ActionResult,
 } from '../shared/types';
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-// Use environment variable for production, fallback to localhost for dev
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
-export interface GameState {
+export interface AppState {
   room: PublicGameRoom | null;
-  myHand: Card[];
+  gameState: PublicVanguardGameState | null;
   myId: string | null;
-  isMyTurn: boolean;
   isConnected: boolean;
   error: string | null;
 }
 
 export function useSocket() {
   const socketRef = useRef<TypedSocket | null>(null);
-  const [gameState, setGameState] = useState<GameState>({
+  const [appState, setAppState] = useState<AppState>({
     room: null,
-    myHand: [],
+    gameState: null,
     myId: null,
-    isMyTurn: false,
     isConnected: false,
     error: null,
   });
 
-  // Connect to server on mount
   useEffect(() => {
     const socket: TypedSocket = io(SERVER_URL, {
       transports: ['websocket', 'polling'],
@@ -42,8 +41,7 @@ export function useSocket() {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('Connected to server');
-      setGameState((prev) => ({
+      setAppState(prev => ({
         ...prev,
         isConnected: true,
         myId: socket.id || null,
@@ -51,20 +49,12 @@ export function useSocket() {
     });
 
     socket.on('disconnect', () => {
-      console.log('Disconnected from server');
-      setGameState((prev) => ({
-        ...prev,
-        isConnected: false,
-      }));
+      setAppState(prev => ({ ...prev, isConnected: false }));
     });
 
     // Room events
     socket.on('room:update', (room) => {
-      setGameState((prev) => ({
-        ...prev,
-        room,
-        isMyTurn: room.currentPlayerId === prev.myId,
-      }));
+      setAppState(prev => ({ ...prev, room }));
     });
 
     socket.on('room:playerJoined', (player) => {
@@ -75,73 +65,46 @@ export function useSocket() {
       console.log(`Player ${playerId} left the room`);
     });
 
-    // Game events
-    socket.on('game:started', (room) => {
-      setGameState((prev) => ({
-        ...prev,
-        room,
-        isMyTurn: room.currentPlayerId === prev.myId,
-      }));
+    // Deck selection events
+    socket.on('deck:playerSelected', (playerId, deckId) => {
+      console.log(`Player ${playerId} selected deck ${deckId}`);
     });
 
-    socket.on('game:yourHand', (cards) => {
-      setGameState((prev) => ({
-        ...prev,
-        myHand: cards,
-      }));
+    socket.on('deck:playerReady', (playerId) => {
+      console.log(`Player ${playerId} is ready`);
     });
 
-    socket.on('game:turnChanged', (currentPlayerId) => {
-      setGameState((prev) => ({
-        ...prev,
-        isMyTurn: currentPlayerId === prev.myId,
-      }));
+    socket.on('deck:allReady', () => {
+      console.log('All players ready!');
     });
 
-    socket.on('game:cardPlayed', (playerId, card) => {
-      console.log(`Player ${playerId} played ${card.value} of ${card.suit}`);
+    // Game state updates
+    socket.on('game:stateUpdate', (state) => {
+      setAppState(prev => ({ ...prev, gameState: state }));
     });
 
-    socket.on('game:cardDrawn', (playerId, cardCount) => {
-      console.log(`Player ${playerId} drew a card (now has ${cardCount})`);
-    });
-
-    socket.on('game:ended', (winnerId) => {
-      console.log(`Game ended! Winner: ${winnerId}`);
-    });
-
+    // Errors
     socket.on('error', (message) => {
       console.error('Server error:', message);
-      setGameState((prev) => ({
-        ...prev,
-        error: message,
-      }));
-
-      // Clear error after 3 seconds
+      setAppState(prev => ({ ...prev, error: message }));
       setTimeout(() => {
-        setGameState((prev) => ({
-          ...prev,
-          error: null,
-        }));
+        setAppState(prev => ({ ...prev, error: null }));
       }, 3000);
     });
 
-    return () => {
-      socket.disconnect();
-    };
+    return () => { socket.disconnect(); };
   }, []);
 
   // Room actions
   const createRoom = useCallback((playerName: string): Promise<RoomResponse> => {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       if (!socketRef.current) {
         resolve({ success: false, error: 'Not connected' });
         return;
       }
-
-      socketRef.current.emit('room:create', playerName, (response) => {
+      socketRef.current.emit('room:create', playerName, response => {
         if (response.success && response.room) {
-          setGameState((prev) => ({
+          setAppState(prev => ({
             ...prev,
             room: response.room!,
             myId: response.playerId || prev.myId,
@@ -152,66 +115,71 @@ export function useSocket() {
     });
   }, []);
 
-  const joinRoom = useCallback(
-    (roomId: string, playerName: string): Promise<RoomResponse> => {
-      return new Promise((resolve) => {
-        if (!socketRef.current) {
-          resolve({ success: false, error: 'Not connected' });
-          return;
+  const joinRoom = useCallback((roomId: string, playerName: string): Promise<RoomResponse> => {
+    return new Promise(resolve => {
+      if (!socketRef.current) {
+        resolve({ success: false, error: 'Not connected' });
+        return;
+      }
+      socketRef.current.emit('room:join', roomId, playerName, response => {
+        if (response.success && response.room) {
+          setAppState(prev => ({
+            ...prev,
+            room: response.room!,
+            myId: response.playerId || prev.myId,
+          }));
         }
-
-        socketRef.current.emit('room:join', roomId, playerName, (response) => {
-          if (response.success && response.room) {
-            setGameState((prev) => ({
-              ...prev,
-              room: response.room!,
-              myId: response.playerId || prev.myId,
-            }));
-          }
-          resolve(response);
-        });
+        resolve(response);
       });
-    },
-    []
-  );
+    });
+  }, []);
 
   const leaveRoom = useCallback(() => {
     socketRef.current?.emit('room:leave');
-    setGameState((prev) => ({
+    setAppState(prev => ({
       ...prev,
       room: null,
-      myHand: [],
-      isMyTurn: false,
+      gameState: null,
     }));
   }, []);
 
-  // Game actions
+  // Deck selection
+  const selectDeck = useCallback((deckId: DeckId) => {
+    socketRef.current?.emit('deck:select', deckId);
+  }, []);
+
+  const readyUp = useCallback(() => {
+    socketRef.current?.emit('deck:ready');
+  }, []);
+
+  // Game start
   const startGame = useCallback(() => {
     socketRef.current?.emit('game:start');
   }, []);
 
-  const playCard = useCallback((cardId: string) => {
-    socketRef.current?.emit('game:playCard', cardId);
-  }, []);
-
-  const drawCard = useCallback(() => {
-    socketRef.current?.emit('game:drawCard');
-  }, []);
-
-  const endTurn = useCallback(() => {
-    socketRef.current?.emit('game:endTurn');
+  // Game action
+  const sendAction = useCallback((action: GameAction): Promise<ActionResult> => {
+    return new Promise(resolve => {
+      if (!socketRef.current) {
+        resolve({ success: false, error: 'Not connected' });
+        return;
+      }
+      socketRef.current.emit('game:action', action, result => {
+        resolve(result);
+      });
+    });
   }, []);
 
   return {
-    gameState,
+    appState,
     actions: {
       createRoom,
       joinRoom,
       leaveRoom,
+      selectDeck,
+      readyUp,
       startGame,
-      playCard,
-      drawCard,
-      endTurn,
+      sendAction,
     },
   };
 }

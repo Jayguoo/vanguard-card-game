@@ -1,0 +1,313 @@
+.deck-select {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a1a 0%, #12102e 40%, #1a1040 100%);
+  display: flex;
+  flex-direction: column;
+  color: white;
+}
+
+/* Header */
+.deck-select__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(100, 80, 200, 0.2);
+}
+
+.deck-select__leave-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(200, 200, 230, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.deck-select__leave-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.deck-select__title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #c9a227 0%, #f0d050 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.deck-select__room-code {
+  font-size: 13px;
+  color: rgba(160, 160, 190, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Content */
+.deck-select__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px;
+  gap: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Player status */
+.deck-select__players {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.deck-select__player {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  background: rgba(30, 25, 60, 0.6);
+  border: 1px solid rgba(100, 80, 200, 0.2);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.deck-select__player--ready {
+  border-color: rgba(80, 200, 120, 0.5);
+  background: rgba(40, 100, 60, 0.2);
+}
+
+.deck-select__player--empty {
+  border-style: dashed;
+  opacity: 0.5;
+}
+
+.deck-select__player-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(220, 220, 240, 0.95);
+}
+
+.deck-select__player-status {
+  font-size: 11px;
+  color: rgba(150, 150, 180, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.deck-select__player--ready .deck-select__player-status {
+  color: rgba(80, 220, 120, 0.9);
+}
+
+/* Deck cards */
+.deck-select__decks {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.deck-select__deck {
+  width: 340px;
+  background: rgba(20, 16, 45, 0.8);
+  border: 2px solid rgba(100, 80, 200, 0.2);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.deck-select__deck:hover:not(.deck-select__deck--disabled) {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Clan-themed borders on hover */
+.deck-select__deck--royal-paladin:hover:not(.deck-select__deck--disabled) {
+  border-color: rgba(100, 140, 255, 0.5);
+  box-shadow: 0 12px 40px rgba(60, 100, 220, 0.25);
+}
+
+.deck-select__deck--kagero:hover:not(.deck-select__deck--disabled) {
+  border-color: rgba(255, 100, 50, 0.5);
+  box-shadow: 0 12px 40px rgba(220, 80, 40, 0.25);
+}
+
+/* Selected state */
+.deck-select__deck--selected {
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 24px rgba(255, 215, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  transform: translateY(-4px);
+}
+
+.deck-select__deck--selected.deck-select__deck--royal-paladin {
+  box-shadow: 0 0 24px rgba(100, 140, 255, 0.3), 0 0 12px rgba(255, 215, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+.deck-select__deck--selected.deck-select__deck--kagero {
+  box-shadow: 0 0 24px rgba(255, 100, 50, 0.3), 0 0 12px rgba(255, 215, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Taken/disabled state */
+.deck-select__deck--taken {
+  opacity: 0.5;
+  filter: grayscale(0.4);
+}
+
+.deck-select__deck--disabled {
+  cursor: default;
+}
+
+/* Deck image */
+.deck-select__deck-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.deck-select__deck-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.deck-select__deck:hover:not(.deck-select__deck--disabled) .deck-select__deck-image {
+  transform: scale(1.05);
+}
+
+.deck-select__deck-taken-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(255, 100, 100, 0.9);
+}
+
+.deck-select__deck-selected-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #c9a227 0%, #e6c341 100%);
+  color: #1a1020;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.5);
+}
+
+/* Deck info */
+.deck-select__deck-info {
+  padding: 16px 20px 20px;
+}
+
+.deck-select__deck-name {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: rgba(230, 230, 250, 0.95);
+}
+
+.deck-select__deck-clan {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+
+.deck-select__deck--royal-paladin .deck-select__deck-clan {
+  color: rgba(100, 160, 255, 0.9);
+}
+
+.deck-select__deck--kagero .deck-select__deck-clan {
+  color: rgba(255, 120, 60, 0.9);
+}
+
+.deck-select__deck-description {
+  font-size: 13px;
+  color: rgba(180, 180, 210, 0.7);
+  line-height: 1.4;
+}
+
+/* Action buttons */
+.deck-select__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.deck-select__btn {
+  padding: 14px 40px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.deck-select__btn:hover {
+  transform: translateY(-2px);
+}
+
+.deck-select__btn:active {
+  transform: translateY(0);
+}
+
+.deck-select__btn--ready {
+  background: linear-gradient(135deg, #4a8c3f 0%, #66bb6a 50%, #4a8c3f 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+}
+
+.deck-select__btn--ready:hover {
+  box-shadow: 0 6px 24px rgba(76, 175, 80, 0.5);
+}
+
+.deck-select__btn--start {
+  background: linear-gradient(135deg, #c9a227 0%, #f0d050 50%, #c9a227 100%);
+  color: #1a1020;
+  box-shadow: 0 4px 16px rgba(201, 162, 39, 0.5);
+  animation: start-btn-pulse 2s ease-in-out infinite;
+}
+
+.deck-select__btn--start:hover {
+  box-shadow: 0 6px 24px rgba(201, 162, 39, 0.7);
+}
+
+@keyframes start-btn-pulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(201, 162, 39, 0.5); }
+  50% { box-shadow: 0 4px 28px rgba(201, 162, 39, 0.7); }
+}
+
+.deck-select__waiting-text {
+  font-size: 14px;
+  color: rgba(160, 160, 190, 0.6);
+  font-style: italic;
+}

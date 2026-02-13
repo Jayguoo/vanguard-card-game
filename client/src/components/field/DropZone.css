@@ -1,0 +1,72 @@
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 96px;
+  padding: 6px 4px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.drop-zone__label {
+  font-size: 8px;
+  color: rgba(200, 200, 220, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.drop-zone__pile {
+  position: relative;
+  width: 80px;
+  height: 112px;
+}
+
+.drop-zone__top-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.drop-zone__top-card--opponent .vg-card {
+  transform: rotate(180deg);
+}
+
+.drop-zone__count-overlay {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  background: rgba(60, 60, 80, 0.9);
+  border: 1px solid rgba(0, 180, 255, 0.25);
+  border-radius: 9px;
+  color: rgba(200, 220, 255, 0.9);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  z-index: 1;
+}
+
+.drop-zone__empty {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.01);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drop-zone__empty-text {
+  color: rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  user-select: none;
+}

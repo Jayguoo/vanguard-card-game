@@ -1,0 +1,27 @@
+services:
+  # Backend - Node.js + Express + Socket.io (Docker)
+  - type: web
+    name: vanguard-server
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: CLIENT_URL
+        sync: false
+
+  # Frontend - React + Vite (Static Site)
+  - type: web
+    name: vanguard-client
+    runtime: static
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: client/dist
+    plan: free
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_SERVER_URL
+        sync: false

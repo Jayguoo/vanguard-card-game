@@ -1,0 +1,20 @@
+.battle-arrow__line {
+  animation: battle-arrow-in 0.3s ease-out;
+}
+
+.battle-arrow__glow {
+  animation: battle-arrow-in 0.3s ease-out;
+}
+
+@keyframes battle-arrow-in {
+  from {
+    opacity: 0;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+  }
+  to {
+    opacity: 1;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 0;
+  }
+}

@@ -1,0 +1,83 @@
+.player-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  position: relative;
+}
+
+.player-field__row {
+  display: grid;
+  grid-template-columns: repeat(3, 112px);
+  gap: 12px;
+  justify-content: center;
+}
+
+/* Both fields: back row on top (away from center), front row on bottom (near guard zone)
+   This makes the VG circles face each other across the guard zone */
+.player-field--opponent .player-field__row--back {
+  order: 1;
+}
+
+.player-field--opponent .player-field__row--front {
+  order: 2;
+}
+
+/* Self field: front row on top (near guard zone), back row below (near hand) */
+.player-field--self .player-field__row--front {
+  order: 1;
+}
+
+.player-field--self .player-field__row--back {
+  order: 2;
+}
+
+/* Rotate opponent cards 180° so the card top points toward the player */
+.player-field--opponent .vg-card {
+  transform: rotate(180deg);
+}
+
+.player-field--opponent .vg-card--rested {
+  transform: rotate(270deg);
+}
+
+.player-field--opponent .vg-card--clickable:hover:not(.vg-card--disabled) {
+  transform: rotate(180deg) translateY(4px);
+}
+
+.player-field--opponent .vg-card--clickable.vg-card--rested:hover:not(.vg-card--disabled) {
+  transform: rotate(270deg) translateX(-4px);
+}
+
+/* Override enter animation for opponent cards to preserve 180° rotation */
+.player-field--opponent .field-circle--card-entering .vg-card {
+  animation: card-enter-field-opponent 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Rested variant for opponent entering cards (180° + 90° = 270°) */
+.player-field--opponent .field-circle--card-entering .vg-card.vg-card--rested {
+  animation: card-enter-field-opponent-rested 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes card-enter-field-opponent {
+  from {
+    opacity: 0;
+    transform: rotate(180deg) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(180deg) scale(1);
+  }
+}
+
+@keyframes card-enter-field-opponent-rested {
+  from {
+    opacity: 0;
+    transform: rotate(270deg) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(270deg) scale(1);
+  }
+}

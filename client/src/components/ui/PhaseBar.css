@@ -1,0 +1,104 @@
+.phase-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 16px;
+  user-select: none;
+}
+
+/* Turn indicator */
+.phase-bar__turn-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-right: 16px;
+  border-right: 1px solid rgba(0, 180, 255, 0.1);
+}
+
+.phase-bar__turn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(100, 120, 140, 0.4);
+  flex-shrink: 0;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.phase-bar__turn-dot--mine {
+  background: #ffd700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  animation: turn-dot-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes turn-dot-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 215, 0, 0.5); }
+  50% { box-shadow: 0 0 16px rgba(255, 215, 0, 0.8); }
+}
+
+.phase-bar__turn-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(150, 170, 200, 0.8);
+  white-space: nowrap;
+}
+
+.phase-bar--my-turn .phase-bar__turn-name {
+  color: #ffd700;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.2);
+}
+
+/* Phases row */
+.phase-bar__phases {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  justify-content: center;
+}
+
+.phase-bar__phase {
+  padding: 4px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(80, 100, 130, 0.45);
+  border-radius: 3px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.phase-bar__phase--past {
+  color: rgba(100, 120, 150, 0.55);
+}
+
+.phase-bar__phase--active {
+  color: rgba(0, 220, 255, 0.9);
+  background: rgba(0, 180, 255, 0.1);
+  box-shadow: 0 0 8px rgba(0, 180, 255, 0.15);
+}
+
+.phase-bar--my-turn .phase-bar__phase--active {
+  background: rgba(255, 215, 0, 0.1);
+  color: #ffd700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.12);
+}
+
+.phase-bar__phase--setup {
+  letter-spacing: 2px;
+  color: rgba(0, 200, 255, 0.7);
+  background: rgba(0, 180, 255, 0.08);
+}
+
+.phase-bar__phase--game-over {
+  letter-spacing: 2px;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+  animation: game-over-shimmer 2s ease-in-out infinite;
+}
+
+@keyframes game-over-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
