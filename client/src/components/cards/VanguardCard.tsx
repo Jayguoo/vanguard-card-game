@@ -86,14 +86,21 @@ export const VanguardCard: React.FC<VanguardCardProps> = ({
   );
 };
 
-export const CardBack: React.FC<{ size?: 'tiny' | 'small' | 'medium' | 'large'; count?: number; onClick?: () => void }> = ({
+export const CardBack: React.FC<{ size?: 'tiny' | 'small' | 'medium' | 'large'; count?: number; onClick?: () => void; isOpponent?: boolean }> = ({
   size = 'medium',
   count,
   onClick,
+  isOpponent,
 }) => {
   return (
     <div className={`vg-card vg-card--${size} ${onClick ? 'vg-card--clickable' : ''}`} onClick={onClick}>
-      <img src="/cards/card-back.webp" alt="Card Back" className="vg-card__image" draggable={false} />
+      <img
+        src="/cards/card-back.webp"
+        alt="Card Back"
+        className="vg-card__image"
+        draggable={false}
+        style={isOpponent ? { transform: 'rotate(180deg)' } : undefined}
+      />
       {count !== undefined && (
         <div className="vg-card__count">{count}</div>
       )}

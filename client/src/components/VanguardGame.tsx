@@ -8,8 +8,10 @@ import {
   FRONT_ROW_POSITIONS,
   BACK_ROW_POSITIONS,
   BOOST_COLUMN_REVERSE,
+  BOOST_COLUMN_MAP,
 } from '../shared/types';
 import { CARD_DATABASE } from '../shared/cardDatabase';
+import { getAbilitiesForCard, getACTAbilities } from '../shared/abilityDefinitions';
 import { PlayerField } from './field/PlayerField';
 import { DamageZone } from './field/DamageZone';
 import { DropZone } from './field/DropZone';
@@ -58,6 +60,8 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
   const [rgMenu, setRgMenu] = useState<{ position: RearGuardPosition; x: number; y: number } | null>(null);
   const [pendingAction, setPendingAction] = useState<{ action: GameAction; description: string } | null>(null);
   const [triggerEffectTarget, setTriggerEffectTarget] = useState<string | null>(null);
+  const [pendingBoosterPosition, setPendingBoosterPosition] = useState<RearGuardPosition | null>(null);
+  const [abilityDiscardSelection, setAbilityDiscardSelection] = useState<string[]>([]);
 
   const { phase, myState, opponentState, battle, turnPlayerId } = gameState;
   const isMyTurn = turnPlayerId === myId;
@@ -119,6 +123,11 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     prevPhaseRef.current = phase;
     setPendingAction(null);
     setTriggerEffectTarget(null);
+    setAbilityDiscardSelection([]);
+    // Keep pendingBoosterPosition only during battle-boost-step (auto-boost effect needs it)
+    if (phase !== 'battle-boost-step') {
+      setPendingBoosterPosition(null);
+    }
 
     // Small delay to let DOM update before scrolling
     const timer = setTimeout(() => {
@@ -140,6 +149,8 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
         scrollTo(guardZoneRef);
       } else if (phase === 'battle-boost-step') {
         scrollTo(myFieldRef);
+      } else if (phase === 'ability-pending') {
+        scrollTo(actionAreaRef);
       } else if (phase === 'game-over') {
         // No scroll needed, overlay covers everything
       } else {
@@ -150,8 +161,28 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     return () => clearTimeout(timer);
   }, [phase, isDefender, scrollTo]);
 
+  // Auto-send boost when entering boost step with a pre-selected booster
+  useEffect(() => {
+    if (phase === 'battle-boost-step' && isMyTurn && pendingBoosterPosition) {
+      const pos = pendingBoosterPosition;
+      setPendingBoosterPosition(null);
+      onAction({ type: 'boost:declare', boosterPosition: pos });
+    }
+  }, [phase, isMyTurn, pendingBoosterPosition, onAction]);
+
   // Determine highlighted cards in hand based on phase
   const highlightedCardIds = useMemo(() => {
+    // During ability discard selection, highlight selected cards
+    if (phase === 'ability-pending' && gameState.abilityPending?.playerId === myId) {
+      const pending = gameState.abilityPending;
+      if (pending.type === 'select-discard') {
+        return abilityDiscardSelection.length > 0
+          ? abilityDiscardSelection
+          : myState.hand.map(c => c.instanceId); // Highlight all hand cards as selectable
+      }
+      return [];
+    }
+
     if (!isMyTurn && phase !== 'battle-guard-step' && phase !== 'battle-damage-trigger-assign') return [];
     const ids: string[] = [];
 
@@ -192,6 +223,23 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
 
   // Determine highlighted field positions
   const highlightedPositions = useMemo((): FieldPosition[] => {
+    // Ability pending — highlight valid targets on my field
+    if (phase === 'ability-pending' && gameState.abilityPending?.playerId === myId) {
+      const pending = gameState.abilityPending;
+      if (pending.type === 'select-target' && pending.validTargets) {
+        const positions: FieldPosition[] = [];
+        for (const target of pending.validTargets) {
+          // Check my units
+          if (myState.vanguardCircle?.instanceId === target.instanceId) positions.push('vanguard');
+          for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as RearGuardPosition[]) {
+            if (myState.rearGuards[pos]?.instanceId === target.instanceId) positions.push(pos);
+          }
+        }
+        return positions;
+      }
+      return [];
+    }
+
     if (phase === 'main-phase' && isMyTurn && selectedCardId) {
       // Highlight empty RC positions where the card can be called
       const positions: FieldPosition[] = [];
@@ -202,7 +250,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     }
 
     if (phase === 'battle-phase' && isMyTurn) {
-      // Highlight standing attackers
+      // Highlight standing attackers + valid back-row boosters
       const positions: FieldPosition[] = [];
       if (myState.vanguardCircle && !myState.vanguardCircle.isRested) {
         positions.push('vanguard');
@@ -211,6 +259,25 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
         const card = myState.rearGuards[pos];
         if (card && !card.isRested) {
           positions.push(pos);
+        }
+      }
+      // Also highlight back-row G0/G1 units that can boost a standing front-row unit
+      for (const backPos of BACK_ROW_POSITIONS as RearGuardPosition[]) {
+        const boosterCard = myState.rearGuards[backPos];
+        if (!boosterCard || boosterCard.isRested) continue;
+        const boosterDef = CARD_DATABASE[boosterCard.cardId];
+        if (!boosterDef || boosterDef.grade > 1) continue;
+        // Check if the front-row unit in the same column exists and is standing
+        const frontPos = BOOST_COLUMN_MAP[backPos] as FieldPosition;
+        if (frontPos === 'vanguard') {
+          if (myState.vanguardCircle && !myState.vanguardCircle.isRested) {
+            positions.push(backPos);
+          }
+        } else {
+          const frontCard = myState.rearGuards[frontPos as RearGuardPosition];
+          if (frontCard && !frontCard.isRested) {
+            positions.push(backPos);
+          }
         }
       }
       return positions;
@@ -243,8 +310,24 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     return [];
   }, [phase, isMyTurn, isDefender, selectedCardId, myState, battle]);
 
-  // Highlighted opponent positions (attack targets)
+  // Highlighted opponent positions (attack targets + ability targets)
   const opponentHighlightedPositions = useMemo((): FieldPosition[] => {
+    // Ability pending — highlight valid targets on opponent field
+    if (phase === 'ability-pending' && gameState.abilityPending?.playerId === myId) {
+      const pending = gameState.abilityPending;
+      if (pending.type === 'select-target' && pending.validTargets) {
+        const positions: FieldPosition[] = [];
+        for (const target of pending.validTargets) {
+          if (opponentState.vanguardCircle?.instanceId === target.instanceId) positions.push('vanguard');
+          for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as RearGuardPosition[]) {
+            if (opponentState.rearGuards[pos]?.instanceId === target.instanceId) positions.push(pos);
+          }
+        }
+        return positions;
+      }
+      return [];
+    }
+
     if (phase === 'battle-attack-step' || (phase === 'battle-phase' && isMyTurn && selectedPosition)) {
       const positions: FieldPosition[] = [];
       if (opponentState.vanguardCircle) positions.push('vanguard');
@@ -311,11 +394,47 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       return;
     }
 
+    // Ability pending — discard selection
+    if (phase === 'ability-pending' && gameState.abilityPending?.playerId === myId) {
+      const pending = gameState.abilityPending;
+      if (pending.type === 'select-discard') {
+        // Toggle card selection for discard
+        setAbilityDiscardSelection(prev => {
+          const newSelection = prev.includes(card.instanceId)
+            ? prev.filter(id => id !== card.instanceId)
+            : [...prev, card.instanceId];
+
+          // Auto-submit when we reach the required count
+          const required = pending.minSelections ?? 1;
+          if (newSelection.length === required) {
+            onAction({ type: 'ability:selectDiscard', cardInstanceIds: newSelection });
+            return [];
+          }
+          return newSelection;
+        });
+        return;
+      }
+    }
+
     // Trigger assignment - clicking hand cards does nothing
-  }, [phase, isMyTurn, isDefender, myState, onAction, scrollTo]);
+  }, [phase, isMyTurn, isDefender, myState, gameState.abilityPending, myId, onAction, scrollTo]);
 
   // Handle my field circle click
   const handleMyCircleClick = useCallback(async (position: FieldPosition) => {
+    // Ability pending — select target from my field
+    if (phase === 'ability-pending' && gameState.abilityPending?.playerId === myId) {
+      const pending = gameState.abilityPending;
+      if (pending.type === 'select-target') {
+        const unitCard = position === 'vanguard'
+          ? myState.vanguardCircle
+          : myState.rearGuards[position as RearGuardPosition];
+        if (unitCard && pending.validTargets?.some(t => t.instanceId === unitCard.instanceId)) {
+          await onAction({ type: 'ability:selectTarget', targetInstanceId: unitCard.instanceId });
+        }
+      }
+      return;
+    }
+
     if (phase === 'main-phase' && isMyTurn && selectedCardId) {
       if (position !== 'vanguard') {
         const selectedCard = myState.hand.find(c => c.instanceId === selectedCardId);
@@ -332,8 +451,25 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     }
 
     if (phase === 'battle-phase' && isMyTurn) {
-      // Select attacker (selection only — no action dispatched)
       setPendingAction(null);
+      // Clicking a back-row booster: auto-select the front-row attacker in that column
+      if ((BACK_ROW_POSITIONS as string[]).includes(position)) {
+        const boosterCard = myState.rearGuards[position as RearGuardPosition];
+        const boosterDef = boosterCard ? CARD_DATABASE[boosterCard.cardId] : null;
+        if (boosterCard && !boosterCard.isRested && boosterDef && boosterDef.grade <= 1) {
+          const frontPos = BOOST_COLUMN_MAP[position] as FieldPosition;
+          const frontCard = frontPos === 'vanguard'
+            ? myState.vanguardCircle
+            : myState.rearGuards[frontPos as RearGuardPosition];
+          if (frontCard && !frontCard.isRested) {
+            setSelectedPosition(frontPos);
+            setPendingBoosterPosition(position as RearGuardPosition);
+            return;
+          }
+        }
+      }
+      // Clicking a front-row/vanguard attacker: select normally, clear any pending booster
+      setPendingBoosterPosition(null);
       setSelectedPosition(prev => prev === position ? null : position);
       return;
     }
@@ -415,8 +551,22 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     }
   }, [phase, isMyTurn, isDefender, selectedCardId, battle, myState, triggerEffectTarget, onAction, scrollTo]);
 
-  // Handle opponent field click (for attack target selection)
+  // Handle opponent field click (for attack target selection + ability targeting)
   const handleOpponentCircleClick = useCallback(async (position: FieldPosition) => {
+    // Ability pending — select target from opponent field
+    if (phase === 'ability-pending' && gameState.abilityPending?.playerId === myId) {
+      const pending = gameState.abilityPending;
+      if (pending.type === 'select-target') {
+        const unitCard = position === 'vanguard'
+          ? opponentState.vanguardCircle
+          : opponentState.rearGuards[position as RearGuardPosition];
+        if (unitCard && pending.validTargets?.some(t => t.instanceId === unitCard.instanceId)) {
+          await onAction({ type: 'ability:selectTarget', targetInstanceId: unitCard.instanceId });
+        }
+      }
+      return;
+    }
+
     if (phase === 'battle-phase' && isMyTurn && selectedPosition) {
       const attackerCard = selectedPosition === 'vanguard'
         ? myState.vanguardCircle
@@ -426,13 +576,21 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
         : opponentState.rearGuards[position as RearGuardPosition];
       const attackerDef = attackerCard ? CARD_DATABASE[attackerCard.cardId] : null;
       const targetDef = targetCard ? CARD_DATABASE[targetCard.cardId] : null;
+      // Include boost info if a booster was pre-selected
+      let desc = `Attack ${targetDef?.name ?? 'unit'} with ${attackerDef?.name ?? 'unit'}`;
+      if (pendingBoosterPosition) {
+        const boosterCard = myState.rearGuards[pendingBoosterPosition];
+        const boosterDef = boosterCard ? CARD_DATABASE[boosterCard.cardId] : null;
+        desc += ` boosted by ${boosterDef?.name ?? 'unit'}`;
+      }
+      desc += '?';
       setPendingAction({
         action: {
           type: 'attack:declare',
           attackerPosition: selectedPosition,
           targetPosition: position,
         },
-        description: `Attack ${targetDef?.name ?? 'unit'} with ${attackerDef?.name ?? 'unit'}?`,
+        description: desc,
       });
       scrollTo(actionAreaRef);
       return;
@@ -444,16 +602,21 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       // Intercept uses MY field
       return;
     }
-  }, [phase, isMyTurn, isDefender, selectedPosition, myState, opponentState, scrollTo]);
+  }, [phase, isMyTurn, isDefender, selectedPosition, myState, opponentState, pendingBoosterPosition, scrollTo]);
 
   // Handle intercept from my field during guard step + always show preview
   const handleMyCardClick = useCallback(async (position: FieldPosition, card: PublicCardInstance) => {
-    // Clicking vanguard shows the soul zone preview
+    // Clicking vanguard shows both the big card image AND soul list side by side
     if (position === 'vanguard') {
-      setPreviewCard(null);
-      setZonePreview(prev =>
-        prev?.zoneKey === 'my-soul' ? null : { label: 'Soul', zoneKey: 'my-soul' }
-      );
+      if (zonePreview?.zoneKey === 'my-soul') {
+        // Already showing soul — close both
+        setPreviewCard(null);
+        setZonePreview(null);
+      } else {
+        // Show both: card preview + soul list
+        setPreviewCard(card);
+        setZonePreview({ label: 'Soul', zoneKey: 'my-soul' });
+      }
       return;
     }
     setPreviewCard(prev => {
@@ -527,6 +690,20 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       }
     }
 
+    // ACT ability activation
+    const unitCard = myState.rearGuards[pos];
+    if (unitCard) {
+      const actAbilities = getACTAbilities(unitCard.cardId);
+      actAbilities.forEach((ability) => {
+        const abilities = getAbilitiesForCard(unitCard.cardId);
+        const abilityIndex = abilities.indexOf(ability);
+        options.push({
+          label: `Activate: ${ability.description.split('?')[0].split('!')[0].substring(0, 30)}...`,
+          action: () => onAction({ type: 'ability:activate', instanceId: unitCard.instanceId, abilityIndex }),
+        });
+      });
+    }
+
     // Retire is always available
     options.push({
       label: 'Retire',
@@ -571,11 +748,36 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       return;
     }
     setPendingAction(null);
+    setPendingBoosterPosition(null);
     // Don't clear selection for phases where selection is still useful
     if (phase === 'ride-phase') {
       setSelectedCardId(null);
     }
   }, [phase, triggerEffectTarget]);
+
+  // Auto-open search results when ability search-select is pending
+  const searchPending = phase === 'ability-pending' && gameState.abilityPending?.type === 'search-select' && gameState.abilityPending?.playerId === myId;
+  const prevSearchPendingRef = useRef(false);
+  useEffect(() => {
+    if (searchPending && !prevSearchPendingRef.current) {
+      const pending = gameState.abilityPending!;
+      setPreviewCard(null);
+      setZonePreview({
+        label: 'Search Results — Choose a card',
+        cards: pending.searchResults ?? [],
+      });
+    }
+    if (!searchPending && prevSearchPendingRef.current) {
+      setZonePreview(null);
+    }
+    prevSearchPendingRef.current = searchPending;
+  }, [searchPending, gameState.abilityPending]);
+
+  // Handle clicking a search result card
+  const handleSearchSelect = useCallback(async (card: PublicCardInstance) => {
+    await onAction({ type: 'ability:searchSelect', cardInstanceId: card.instanceId });
+    setZonePreview(null);
+  }, [onAction]);
 
   // Auto-open damage zone when heal damage choice is pending
   const healPending = battle?.healDamageChoicePending ?? false;
@@ -708,7 +910,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
         <div className="vg-game__player-side vg-game__opponent-side">
           <div className="vg-game__side-zone vg-game__side-zone--left">
             <DropZone cards={opponentState.dropZone} label="Drop" isOpponent onClick={() => { setPreviewCard(null); setZonePreview({ label: `${opponentState.name}'s Drop Zone`, zoneKey: 'opp-drop' }); }} />
-            <CardBack size="medium" count={opponentState.deckCount} />
+            <CardBack size="medium" count={opponentState.deckCount} isOpponent />
           </div>
           <div className="vg-game__field-area">
             <PlayerField
@@ -798,8 +1000,20 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       {previewCard && (() => {
         const def = CARD_DATABASE[previewCard.cardId];
         if (!def) return null;
+        const showingBoth = !!zonePreview;
         return (
-          <div className="vg-game__card-preview" onClick={() => setPreviewCard(null)}>
+          <div
+            className="vg-game__card-preview"
+            onClick={() => {
+              if (showingBoth) {
+                // Close both when clicking the card preview during soul view
+                setPreviewCard(null);
+                setZonePreview(null);
+              } else {
+                setPreviewCard(null);
+              }
+            }}
+          >
             <div className="vg-game__card-preview-inner">
               <img
                 src={def.imagePath}
@@ -811,7 +1025,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
                 <div className="vg-game__card-preview-name">{def.name}</div>
                 <div className="vg-game__card-preview-stats">
                   <span>Grade {def.grade}</span>
-                  <span>Power {def.power + previewCard.turnPowerModifier}</span>
+                  <span>Power {def.power + previewCard.turnPowerModifier + previewCard.battlePowerModifier + previewCard.continuousPowerModifier}</span>
                   {def.shield > 0 && <span>Shield {def.shield}</span>}
                 </div>
                 {def.triggerType && (
@@ -827,26 +1041,83 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
 
       {/* Zone list preview panel */}
       {zonePreview && (
-        <div className="vg-game__zone-preview" onClick={() => !healPending && setZonePreview(null)}>
+        <div
+          className={`vg-game__zone-preview ${previewCard ? 'vg-game__zone-preview--beside-card' : ''}`}
+          onClick={() => {
+            if (healPending || searchPending) return;
+            setZonePreview(null);
+            if (previewCard) setPreviewCard(null);
+          }}
+        >
           <div className="vg-game__zone-preview-inner" onClick={(e) => e.stopPropagation()}>
             <div className="vg-game__zone-preview-header">
               <span className="vg-game__zone-preview-title">{zonePreview.label} ({resolvedZonePreviewCards.length})</span>
-              {!healPending && (
-                <button className="vg-game__zone-preview-close" onClick={() => setZonePreview(null)}>✕</button>
+              {!healPending && !searchPending && (
+                <button className="vg-game__zone-preview-close" onClick={() => {
+                  setZonePreview(null);
+                  if (previewCard) setPreviewCard(null);
+                }}>✕</button>
               )}
             </div>
             <div className="vg-game__zone-preview-list">
               {resolvedZonePreviewCards.length === 0 ? (
                 <div className="vg-game__zone-preview-empty">No cards</div>
+              ) : zonePreview.zoneKey === 'my-deck' ? (
+                // Deck view: grouped by card with counts, sorted by grade
+                (() => {
+                  const grouped: { cardId: string; count: number }[] = [];
+                  const countMap: Record<string, number> = {};
+                  for (const card of resolvedZonePreviewCards) {
+                    countMap[card.cardId] = (countMap[card.cardId] || 0) + 1;
+                  }
+                  for (const cardId of Object.keys(countMap)) {
+                    grouped.push({ cardId, count: countMap[cardId] });
+                  }
+                  grouped.sort((a, b) => {
+                    const defA = CARD_DATABASE[a.cardId];
+                    const defB = CARD_DATABASE[b.cardId];
+                    if (!defA || !defB) return 0;
+                    if (defA.grade !== defB.grade) return defA.grade - defB.grade;
+                    return defA.name.localeCompare(defB.name);
+                  });
+                  return grouped.map(({ cardId, count }) => {
+                    const def = CARD_DATABASE[cardId];
+                    if (!def) return null;
+                    return (
+                      <div
+                        key={cardId}
+                        className="vg-game__zone-preview-card"
+                      >
+                        <img
+                          src={def.imagePath}
+                          alt={def.name}
+                          className="vg-game__zone-preview-card-image"
+                          draggable={false}
+                        />
+                        <div className="vg-game__zone-preview-card-info">
+                          <span className="vg-game__zone-preview-card-name">{def.name}</span>
+                          <span className="vg-game__zone-preview-card-stats">G{def.grade} / {def.power}</span>
+                          <span className="vg-game__zone-preview-card-count">x{count}</span>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()
               ) : (
                 resolvedZonePreviewCards.map((card) => {
                   const def = CARD_DATABASE[card.cardId];
                   if (!def) return null;
+                  const isClickable = healPending || searchPending;
+                  const handleClick = healPending
+                    ? () => handleHealDamageChoice(card)
+                    : searchPending
+                      ? () => handleSearchSelect(card)
+                      : undefined;
                   return (
                     <div
                       key={card.instanceId}
-                      className={`vg-game__zone-preview-card ${healPending ? 'vg-game__zone-preview-card--clickable' : ''}`}
-                      onClick={healPending ? () => handleHealDamageChoice(card) : undefined}
+                      className={`vg-game__zone-preview-card ${isClickable ? 'vg-game__zone-preview-card--clickable' : ''}`}
+                      onClick={handleClick}
                     >
                       <img
                         src={def.imagePath}

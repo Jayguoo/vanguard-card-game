@@ -6,6 +6,7 @@ import {
   PublicCardInstance,
   PublicBattleState,
   PublicRPSState,
+  PublicAbilityPendingState,
   CardInstance,
   RearGuardPosition,
 } from '../../shared/types';
@@ -21,6 +22,10 @@ function toPublicCard(card: CardInstance): PublicCardInstance {
     isFaceUp: card.isFaceUp,
     turnPowerModifier: card.turnPowerModifier,
     turnCriticalModifier: card.turnCriticalModifier,
+    battlePowerModifier: card.battlePowerModifier,
+    battleCriticalModifier: card.battleCriticalModifier,
+    continuousPowerModifier: card.continuousPowerModifier,
+    lostTwinDrive: card.lostTwinDrive,
   };
 }
 
@@ -154,5 +159,32 @@ export function getStateForPlayer(
     rps: buildPublicRPSState(state, playerId),
     winner: state.winner,
     actionLog: state.actionLog.slice(-50), // last 50 entries
+    abilityPending: buildPublicAbilityPending(state),
+  };
+}
+
+function buildPublicAbilityPending(
+  state: VanguardGameState,
+): PublicAbilityPendingState | null {
+  const pending = state.abilityPending;
+  if (!pending) return null;
+
+  return {
+    abilityId: pending.abilityId,
+    cardInstanceId: pending.cardInstanceId,
+    cardId: pending.cardId,
+    playerId: pending.playerId,
+    type: pending.type,
+    description: pending.description,
+    optional: pending.optional,
+    validTargets: pending.validTargets
+      ? pending.validTargets.map(id => toPublicCard(state.allCards[id]))
+      : undefined,
+    searchResults: pending.searchResults
+      ? pending.searchResults.map(id => toPublicCard(state.allCards[id]))
+      : undefined,
+    minSelections: pending.minSelections,
+    maxSelections: pending.maxSelections,
+    costDescription: pending.costDescription,
   };
 }

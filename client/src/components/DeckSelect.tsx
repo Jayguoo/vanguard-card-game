@@ -28,14 +28,6 @@ export const DeckSelect: React.FC<DeckSelectProps> = ({
   const isReady = myPlayer?.isReady ?? false;
   const allReady = room.players.length === 2 && room.players.every((p) => p.isReady);
 
-  // Determine which decks are already taken by the opponent
-  const takenDeckIds = new Set<DeckId>();
-  for (const player of room.players) {
-    if (player.id !== myId && player.deckId) {
-      takenDeckIds.add(player.deckId);
-    }
-  }
-
   return (
     <div className="deck-select">
       <div className="deck-select__header">
@@ -81,8 +73,7 @@ export const DeckSelect: React.FC<DeckSelectProps> = ({
             const comp = DECK_COMPOSITIONS[deckId];
             const coverCard = CARD_DATABASE[comp.coverCardId];
             const isSelected = myDeckId === deckId;
-            const isTaken = takenDeckIds.has(deckId);
-            const isDisabled = isTaken || isReady;
+            const isDisabled = isReady;
             const clanClass = comp.clan === 'royal-paladin' ? 'royal-paladin' : 'kagero';
 
             return (
@@ -92,7 +83,6 @@ export const DeckSelect: React.FC<DeckSelectProps> = ({
                   'deck-select__deck',
                   `deck-select__deck--${clanClass}`,
                   isSelected ? 'deck-select__deck--selected' : '',
-                  isTaken ? 'deck-select__deck--taken' : '',
                   isDisabled ? 'deck-select__deck--disabled' : '',
                 ].filter(Boolean).join(' ')}
                 onClick={isDisabled ? undefined : () => onSelectDeck(deckId)}
@@ -106,11 +96,6 @@ export const DeckSelect: React.FC<DeckSelectProps> = ({
                       className="deck-select__deck-image"
                       draggable={false}
                     />
-                  )}
-                  {isTaken && (
-                    <div className="deck-select__deck-taken-overlay">
-                      Taken by Opponent
-                    </div>
                   )}
                   {isSelected && (
                     <div className="deck-select__deck-selected-badge">

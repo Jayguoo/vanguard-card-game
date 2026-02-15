@@ -40,6 +40,10 @@ export function buildDeck(deckId: DeckId, playerId: string): BuiltDeck {
     isFaceUp: false, // starts face down
     turnPowerModifier: 0,
     turnCriticalModifier: 0,
+    battlePowerModifier: 0,
+    battleCriticalModifier: 0,
+    continuousPowerModifier: 0,
+    lostTwinDrive: false,
   };
   allCards.push(starterVanguard);
 
@@ -56,6 +60,10 @@ export function buildDeck(deckId: DeckId, playerId: string): BuiltDeck {
         isFaceUp: false,
         turnPowerModifier: 0,
         turnCriticalModifier: 0,
+        battlePowerModifier: 0,
+        battleCriticalModifier: 0,
+        continuousPowerModifier: 0,
+        lostTwinDrive: false,
       };
       mainDeckCards.push(card);
       allCards.push(card);

@@ -116,7 +116,9 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
           </div>
         );
 
-      case 'main-phase':
+      case 'main-phase': {
+        // First player skips battle on turn 1
+        const isFirstTurn = gameState.turnNumber === 1 && gameState.firstPlayerId === myId;
         return isMyTurn ? (
           <div className="action-panel__group">
             <p className="action-panel__hint">
@@ -124,7 +126,9 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
                 ? 'Call the selected card to the chosen position.'
                 : selectedCardId
                   ? 'Now select a rear-guard circle to call to.'
-                  : 'Select a card to call, or proceed to battle.'}
+                  : isFirstTurn
+                    ? 'Select a card to call, or end your turn.'
+                    : 'Select a card to call, or proceed to battle.'}
             </p>
             {selectedCardId && selectedPosition && selectedPosition !== 'vanguard' && (
               <button
@@ -140,12 +144,14 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
                 Call
               </button>
             )}
-            <button
-              className="action-panel__btn action-panel__btn--accent"
-              onClick={() => onAction({ type: 'phase:endPhase' })}
-            >
-              Move to Battle
-            </button>
+            {!isFirstTurn && (
+              <button
+                className="action-panel__btn action-panel__btn--accent"
+                onClick={() => onAction({ type: 'phase:endPhase' })}
+              >
+                Move to Battle
+              </button>
+            )}
             <button
               className="action-panel__btn action-panel__btn--secondary"
               onClick={() => onAction({ type: 'endTurn' })}
@@ -160,6 +166,7 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
             </p>
           </div>
         );
+      }
 
       case 'battle-phase':
         return isMyTurn ? (
@@ -395,6 +402,92 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
           </div>
         );
 
+      case 'ability-pending': {
+        const pending = gameState.abilityPending;
+        if (!pending) return null;
+
+        const isMyAbility = pending.playerId === myId;
+
+        if (!isMyAbility) {
+          return (
+            <div className="action-panel__group">
+              <p className="action-panel__hint action-panel__hint--waiting">
+                Opponent is resolving an ability...
+              </p>
+            </div>
+          );
+        }
+
+        switch (pending.type) {
+          case 'may-activate':
+            return (
+              <div className="action-panel__group">
+                <p className="action-panel__hint action-panel__hint--trigger">
+                  {pending.description}
+                </p>
+                {pending.costDescription && (
+                  <p className="action-panel__hint" style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                    Cost: {pending.costDescription}
+                  </p>
+                )}
+                <button
+                  className="action-panel__btn action-panel__btn--primary"
+                  onClick={() => onAction({ type: 'ability:confirm' })}
+                >
+                  Activate
+                </button>
+                {pending.optional && (
+                  <button
+                    className="action-panel__btn action-panel__btn--secondary"
+                    onClick={() => onAction({ type: 'ability:decline' })}
+                  >
+                    Decline
+                  </button>
+                )}
+              </div>
+            );
+
+          case 'select-target':
+            return (
+              <div className="action-panel__group">
+                <p className="action-panel__hint action-panel__hint--trigger">
+                  {pending.description}
+                </p>
+                <p className="action-panel__hint" style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                  Click a valid target on the field.
+                </p>
+              </div>
+            );
+
+          case 'select-discard':
+            return (
+              <div className="action-panel__group">
+                <p className="action-panel__hint action-panel__hint--trigger">
+                  {pending.description}
+                </p>
+                <p className="action-panel__hint" style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                  Select {pending.minSelections ?? 1} card(s) from your hand to discard.
+                </p>
+              </div>
+            );
+
+          case 'search-select':
+            return (
+              <div className="action-panel__group">
+                <p className="action-panel__hint action-panel__hint--trigger">
+                  {pending.description}
+                </p>
+                <p className="action-panel__hint" style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                  Choose a card from the search results.
+                </p>
+              </div>
+            );
+
+          default:
+            return null;
+        }
+      }
+
       case 'game-over':
         return (
           <div className="action-panel__group">
@@ -446,6 +539,7 @@ function getPhaseLabel(phase: GamePhase): string {
     'battle-damage-trigger-assign': 'Trigger Assign',
     'battle-close-step': 'Close Step',
     'end-phase': 'End Phase',
+    'ability-pending': 'Ability',
     'game-over': 'Game Over',
   };
   return labels[phase] ?? phase;

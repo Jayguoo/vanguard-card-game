@@ -27,6 +27,19 @@ import {
 } from './combat';
 import { assignTriggerEffects, recalculateBattlePowers } from './triggers';
 import { getStateForPlayer } from './stateProjection';
+import {
+  checkAbilitiesForEvent,
+  processAbilityQueue,
+  resolvePlayerAbilityChoice,
+  recalculateContinuousAbilities,
+  clearBattleModifiers,
+  activateACTAbility,
+  canActivateACT,
+  canAttackBackRow,
+  getBackRowTargetForTejas,
+  executeSuperiorRide,
+  AbilityContext,
+} from './abilities';
 
 export class GameEngine {
   private state: VanguardGameState;
@@ -76,6 +89,8 @@ export class GameEngine {
       },
       winner: null,
       actionLog: [],
+      abilityPending: null,
+      abilityQueue: [],
     };
 
     this.addLog('system', 'Rock, Paper, Scissors to decide who goes first!', 'system');
@@ -230,6 +245,25 @@ export class GameEngine {
 
       case 'endTurn':
         return this.handleEndTurn(playerId);
+
+      // Ability actions
+      case 'ability:activate':
+        return this.handleAbilityActivate(playerId, action.instanceId, action.abilityIndex);
+
+      case 'ability:selectTarget':
+        return this.handleAbilitySelectTarget(playerId, action.targetInstanceId);
+
+      case 'ability:selectDiscard':
+        return this.handleAbilitySelectDiscard(playerId, action.cardInstanceIds);
+
+      case 'ability:searchSelect':
+        return this.handleAbilitySearchSelect(playerId, action.cardInstanceId);
+
+      case 'ability:confirm':
+        return this.handleAbilityConfirm(playerId);
+
+      case 'ability:decline':
+        return this.handleAbilityDecline(playerId);
 
       default:
         return { success: false, error: 'Unknown action type' };
@@ -462,9 +496,38 @@ export class GameEngine {
 
     this.addLog(playerId, `Rode ${cardDef.name}!`, 'action');
 
-    // Auto-advance to main phase after riding
-    this.state.phase = 'main-phase';
-    this.addLog(playerId, 'Main Phase', 'phase');
+    // Recalculate continuous abilities (e.g., Gancelot +5000 if BB in soul)
+    recalculateContinuousAbilities(this.state);
+
+    // Check for onPlaceVC abilities (e.g., Gancelot search)
+    checkAbilitiesForEvent(this.state, {
+      event: 'onPlaceVC',
+      playerId,
+      placedCardId: cardInstanceId,
+      cardInstanceId,
+    });
+
+    // Also check onPlaceVCorRC
+    checkAbilitiesForEvent(this.state, {
+      event: 'onPlaceVCorRC',
+      playerId,
+      placedCardId: cardInstanceId,
+      cardInstanceId,
+    });
+
+    // If abilities were queued, process them before moving to main phase
+    if (this.state.abilityQueue.length > 0) {
+      processAbilityQueue(this.state);
+      // Phase may now be 'ability-pending' — main phase resumes after resolution
+      const currentPhase = this.state.phase as GamePhase;
+      if (currentPhase === 'ability-pending' && this.state.abilityPending) {
+        this.state.abilityPending.previousPhase = 'main-phase';
+      }
+    } else {
+      // Auto-advance to main phase after riding
+      this.state.phase = 'main-phase';
+      this.addLog(playerId, 'Main Phase', 'phase');
+    }
 
     return { success: true };
   }
@@ -503,6 +566,30 @@ export class GameEngine {
     player.rearGuards[position] = cardInstanceId;
 
     this.addLog(playerId, `Called ${cardDef.name} to ${formatPosition(position)}`, 'action');
+
+    // Recalculate continuous abilities
+    recalculateContinuousAbilities(this.state);
+
+    // Check for onPlaceRC abilities (e.g., Starlight Unicorn)
+    checkAbilitiesForEvent(this.state, {
+      event: 'onPlaceRC',
+      playerId,
+      placedCardId: cardInstanceId,
+      cardInstanceId,
+    });
+
+    // Also check onPlaceVCorRC (e.g., Blaster Blade, Berserk Dragon)
+    checkAbilitiesForEvent(this.state, {
+      event: 'onPlaceVCorRC',
+      playerId,
+      placedCardId: cardInstanceId,
+      cardInstanceId,
+    });
+
+    // If abilities were queued, process them
+    if (this.state.abilityQueue.length > 0) {
+      processAbilityQueue(this.state);
+    }
 
     return { success: true };
   }
@@ -815,6 +902,81 @@ export class GameEngine {
     return { success: true };
   }
 
+  // ---------- ABILITY HANDLERS ----------
+
+  private handleAbilityActivate(playerId: string, instanceId: string, abilityIndex: number): ActionResult {
+    if (this.state.phase !== 'main-phase') {
+      return { success: false, error: 'Can only activate abilities during main phase' };
+    }
+    if (playerId !== this.state.turnPlayerId) {
+      return { success: false, error: 'Not your turn' };
+    }
+
+    const result = activateACTAbility(this.state, playerId, instanceId, abilityIndex);
+    if (!result) {
+      return { success: false, error: 'Cannot activate this ability' };
+    }
+    return { success: true };
+  }
+
+  private handleAbilitySelectTarget(playerId: string, targetInstanceId: string): ActionResult {
+    if (this.state.phase !== 'ability-pending') {
+      return { success: false, error: 'No ability pending' };
+    }
+
+    const result = resolvePlayerAbilityChoice(this.state, playerId, {
+      type: 'selectTarget',
+      targetInstanceId,
+    });
+    return result ? { success: true } : { success: false, error: 'Invalid target' };
+  }
+
+  private handleAbilitySelectDiscard(playerId: string, cardInstanceIds: string[]): ActionResult {
+    if (this.state.phase !== 'ability-pending') {
+      return { success: false, error: 'No ability pending' };
+    }
+
+    const result = resolvePlayerAbilityChoice(this.state, playerId, {
+      type: 'selectDiscard',
+      cardInstanceIds,
+    });
+    return result ? { success: true } : { success: false, error: 'Invalid discard selection' };
+  }
+
+  private handleAbilitySearchSelect(playerId: string, cardInstanceId: string): ActionResult {
+    if (this.state.phase !== 'ability-pending') {
+      return { success: false, error: 'No ability pending' };
+    }
+
+    const result = resolvePlayerAbilityChoice(this.state, playerId, {
+      type: 'searchSelect',
+      targetInstanceId: cardInstanceId,
+    });
+    return result ? { success: true } : { success: false, error: 'Invalid selection' };
+  }
+
+  private handleAbilityConfirm(playerId: string): ActionResult {
+    if (this.state.phase !== 'ability-pending') {
+      return { success: false, error: 'No ability pending' };
+    }
+
+    const result = resolvePlayerAbilityChoice(this.state, playerId, {
+      type: 'confirm',
+    });
+    return result ? { success: true } : { success: false, error: 'Cannot confirm' };
+  }
+
+  private handleAbilityDecline(playerId: string): ActionResult {
+    if (this.state.phase !== 'ability-pending') {
+      return { success: false, error: 'No ability pending' };
+    }
+
+    const result = resolvePlayerAbilityChoice(this.state, playerId, {
+      type: 'decline',
+    });
+    return result ? { success: true } : { success: false, error: 'Cannot decline' };
+  }
+
   // ---------- END BATTLE / END TURN ----------
 
   private handleEndBattle(playerId: string): ActionResult {
@@ -856,6 +1018,7 @@ export class GameEngine {
       const phase = this.state.phase;
 
       if (phase === 'game-over') break;
+      if (phase === 'ability-pending') break; // Wait for player to resolve ability
 
       // RPS phases — wait for player input or timer
       if (phase === 'setup-rps') break;
@@ -929,9 +1092,25 @@ export class GameEngine {
 
       // Drive check - automatic
       if (phase === 'battle-drive-check') {
+        // If there's already a card in the trigger zone (from a previous drive check
+        // that was interrupted by ability resolution), don't do another check — just
+        // wait for the reveal timer to resolve it.
+        const turnPlayer = this.state.players[this.state.turnPlayerId];
+        if (turnPlayer.triggerZone) {
+          break; // Card already revealed, wait for reveal timer
+        }
+
         const result = executeDriveCheck(this.state);
         if (result === 'trigger') break; // Wait for trigger assignment
-        if (result === 'reveal') break; // Wait for reveal pause (server will resolve after delay)
+        if (result === 'reveal') {
+          // Check if abilities were queued during the drive check (e.g., Goku retire)
+          if (this.state.abilityQueue.length > 0) {
+            processAbilityQueue(this.state);
+            // Phase is now 'ability-pending' — loop will break on next iteration
+            continue;
+          }
+          break; // Wait for reveal pause (server will resolve after delay)
+        }
         // 'deckout' — loop continues
         continue;
       }
@@ -945,6 +1124,13 @@ export class GameEngine {
 
       // Damage check - automatic
       if (phase === 'battle-damage-check') {
+        // If there's already a card in the opponent's trigger zone (from a previous
+        // damage check interrupted by ability resolution), wait for reveal timer.
+        const oppId = getOpponentId(this.state, this.state.turnPlayerId);
+        if (this.state.players[oppId].triggerZone) {
+          break; // Card already revealed, wait for reveal timer
+        }
+
         const result = executeDamageCheck(this.state);
         if (result === 'trigger') break; // Wait for trigger assignment
         if (result === 'reveal') break; // Wait for reveal pause (server will resolve after delay)
@@ -986,6 +1172,20 @@ export class GameEngine {
 
     // Reset turn power/critical modifiers for ALL units on this player's field
     this.resetTurnModifiers(playerId);
+
+    // Reset lostTwinDrive flag (Dragonic Overlord)
+    if (player.vanguardCircle) {
+      this.state.allCards[player.vanguardCircle].lostTwinDrive = false;
+    }
+    for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS]) {
+      const unitId = player.rearGuards[pos];
+      if (unitId) {
+        this.state.allCards[unitId].lostTwinDrive = false;
+      }
+    }
+
+    // Recalculate continuous abilities
+    recalculateContinuousAbilities(this.state);
 
     this.addLog(playerId, 'Stand Phase - All units stand!', 'phase');
   }
@@ -1068,7 +1268,7 @@ export class GameEngine {
   private addLog(
     playerId: string,
     message: string,
-    type: 'phase' | 'action' | 'trigger' | 'damage' | 'system',
+    type: 'phase' | 'action' | 'trigger' | 'damage' | 'system' | 'ability',
   ): void {
     this.state.actionLog.push({
       timestamp: Date.now(),

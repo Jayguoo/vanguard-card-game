@@ -371,6 +371,11 @@
   animation: preview-in 0.2s ease-out;
 }
 
+/* When card preview is also showing, shift soul list to the right of it */
+.vg-game__zone-preview--beside-card {
+  left: 290px;
+}
+
 .vg-game__zone-preview-inner {
   display: flex;
   flex-direction: column;
@@ -475,6 +480,13 @@
 .vg-game__zone-preview-card-stats {
   font-size: 10px;
   color: rgba(150, 170, 200, 0.7);
+}
+
+.vg-game__zone-preview-card-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5ad8ff;
+  letter-spacing: 0.5px;
 }
 
 .vg-game__zone-preview-empty {

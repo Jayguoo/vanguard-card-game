@@ -417,10 +417,10 @@ export const CARD_DATABASE: Record<string, CardDefinition> = {
     name: 'Dragon Dancer, Monica',
     grade: 0,
     power: 5000,
-    shield: 10000,
+    shield: 5000,
     clan: 'kagero',
     race: 'Human',
-    triggerType: 'critical',
+    triggerType: 'draw',
     triggerPower: 5000,
     skillIcon: 'boost',
     imageFile: 'TD02_013EN.png',
@@ -496,19 +496,19 @@ export const DECK_COMPOSITIONS: Record<DeckId, DeckComposition> = {
     starterVanguardId: 'TD01/012', // Stardust Trumpeter
     cards: [
       // Grade 3 (7 cards)
-      { cardId: 'TD01/001', count: 2 }, // Crimson Butterfly, Brigitte
-      { cardId: 'TD01/002', count: 3 }, // Knight of Conviction, Bors
+      { cardId: 'TD01/001', count: 4 }, // Crimson Butterfly, Brigitte
+      { cardId: 'TD01/002', count: 1 }, // Knight of Conviction, Bors
       { cardId: 'TD01/003', count: 2 }, // Solitary Knight, Gancelot
 
-      // Grade 2 (11 cards)
-      { cardId: 'TD01/004', count: 3 }, // Knight of Silence, Gallatin
-      { cardId: 'TD01/005', count: 3 }, // Blaster Blade
+      // Grade 2 (12 cards)
+      { cardId: 'TD01/004', count: 4 }, // Knight of Silence, Gallatin
+      { cardId: 'TD01/005', count: 1 }, // Blaster Blade
       { cardId: 'TD01/006', count: 3 }, // Knight of the Harp, Tristan
-      { cardId: 'TD01/007', count: 2 }, // Covenant Knight, Randolf
+      { cardId: 'TD01/007', count: 4 }, // Covenant Knight, Randolf
 
-      // Grade 1 (15 cards)
+      // Grade 1 (14 cards)
       { cardId: 'TD01/008', count: 4 }, // Little Sage, Marron
-      { cardId: 'TD01/009', count: 3 }, // Wingal
+      { cardId: 'TD01/009', count: 2 }, // Wingal
       { cardId: 'TD01/010', count: 4 }, // Starlight Unicorn
       { cardId: 'TD01/011', count: 4 }, // Knight of Rose, Morgana
 
@@ -517,7 +517,7 @@ export const DECK_COMPOSITIONS: Record<DeckId, DeckComposition> = {
       { cardId: 'TD01/014', count: 4 }, // Yggdrasil Maiden, Elaine (Heal)
       { cardId: 'TD01/015', count: 4 }, // Weapons Dealer, Govannon (Draw)
       { cardId: 'TD01/016', count: 4 }, // Flogal (Stand)
-      // Total: 7 + 11 + 15 + 16 = 49 in deck + 1 starter = 50
+      // Total: 7 + 12 + 14 + 16 = 49 in deck + 1 starter = 50
     ],
   },
 
@@ -532,61 +532,30 @@ export const DECK_COMPOSITIONS: Record<DeckId, DeckComposition> = {
     cards: [
       // Grade 3 (7 cards)
       { cardId: 'TD02/001', count: 2 }, // Dragonic Overlord
-      { cardId: 'TD02/002', count: 3 }, // Dragon Monk, Goku
-      { cardId: 'TD02/003', count: 2 }, // Demonic Dragon Berserker, Yaksha
+      { cardId: 'TD02/002', count: 1 }, // Dragon Monk, Goku
+      { cardId: 'TD02/003', count: 4 }, // Demonic Dragon Berserker, Yaksha
 
-      // Grade 2 (11 cards)
-      { cardId: 'TD02/004', count: 3 }, // Dragon Knight, Nehalem
-      { cardId: 'TD02/005', count: 3 }, // Berserk Dragon
-      { cardId: 'TD02/006', count: 3 }, // Wyvern Strike, Tejas
-      // Add 2 more G2 to make 11 - use Nehalem extras
-      // Actually let me make it: 4 Nehalem + 3 Berserk + 2 Tejas = 9, need 2 more
-      // Trial decks typically use the cards they have. Let's adjust:
+      // Grade 2 (12 cards)
+      { cardId: 'TD02/004', count: 4 }, // Dragon Knight, Nehalem
+      { cardId: 'TD02/005', count: 4 }, // Berserk Dragon
+      { cardId: 'TD02/006', count: 4 }, // Wyvern Strike, Tejas
 
-      // Grade 1 (15 cards)
+      // Grade 1 (14 cards)
       { cardId: 'TD02/007', count: 4 }, // Embodiment of Armor, Bahr
-      { cardId: 'TD02/008', count: 3 }, // Dragon Monk, Gojo
-      { cardId: 'TD02/009', count: 3 }, // Flame of Hope, Aermo
+      { cardId: 'TD02/008', count: 2 }, // Dragon Monk, Gojo
+      { cardId: 'TD02/009', count: 4 }, // Flame of Hope, Aermo
       { cardId: 'TD02/010', count: 2 }, // Demonic Dragon Madonna, Joka
-      { cardId: 'TD02/011', count: 3 }, // Wyvern Strike, Jarran
+      { cardId: 'TD02/011', count: 2 }, // Wyvern Strike, Jarran
 
       // Grade 0 triggers (16 cards)
-      { cardId: 'TD02/013', count: 4 }, // Dragon Dancer, Monica (Critical)
+      { cardId: 'TD02/013', count: 4 }, // Dragon Dancer, Monica (Draw)
       { cardId: 'TD02/014', count: 4 }, // Lizard Soldier, Ganlu (Stand)
       { cardId: 'TD02/015', count: 4 }, // Dragon Monk, Genjo (Heal)
       { cardId: 'TD02/016', count: 4 }, // Demonic Dragon Mage, Rakshasa (Critical)
-      // Total: 7 + 9 + 15 + 16 = 47... need 49. Adjust G2 to 11:
+      // Total: 7 + 12 + 14 + 16 = 49 in deck + 1 starter = 50
     ],
   },
 };
-
-// Fix TD02 G2 counts to ensure 49 cards in main deck
-// G3: 7, G2: 11, G1: 15, G0 triggers: 16 = 49
-DECK_COMPOSITIONS['td02-dragonic-overlord'].cards = [
-  // Grade 3 (7 cards)
-  { cardId: 'TD02/001', count: 2 }, // Dragonic Overlord
-  { cardId: 'TD02/002', count: 3 }, // Dragon Monk, Goku
-  { cardId: 'TD02/003', count: 2 }, // Demonic Dragon Berserker, Yaksha
-
-  // Grade 2 (11 cards)
-  { cardId: 'TD02/004', count: 4 }, // Dragon Knight, Nehalem
-  { cardId: 'TD02/005', count: 4 }, // Berserk Dragon
-  { cardId: 'TD02/006', count: 3 }, // Wyvern Strike, Tejas
-
-  // Grade 1 (15 cards)
-  { cardId: 'TD02/007', count: 4 }, // Embodiment of Armor, Bahr
-  { cardId: 'TD02/008', count: 3 }, // Dragon Monk, Gojo
-  { cardId: 'TD02/009', count: 3 }, // Flame of Hope, Aermo
-  { cardId: 'TD02/010', count: 2 }, // Demonic Dragon Madonna, Joka
-  { cardId: 'TD02/011', count: 3 }, // Wyvern Strike, Jarran
-
-  // Grade 0 triggers (16 cards)
-  { cardId: 'TD02/013', count: 4 }, // Dragon Dancer, Monica (Critical)
-  { cardId: 'TD02/014', count: 4 }, // Lizard Soldier, Ganlu (Stand)
-  { cardId: 'TD02/015', count: 4 }, // Dragon Monk, Genjo (Heal)
-  { cardId: 'TD02/016', count: 4 }, // Demonic Dragon Mage, Rakshasa (Critical)
-  // Total: 7 + 11 + 15 + 16 = 49 in deck + 1 starter = 50
-];
 
 // Helper to get a card definition by ID
 export function getCardDefinition(cardId: string): CardDefinition {

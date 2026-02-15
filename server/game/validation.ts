@@ -8,6 +8,7 @@ import {
   CardInstance,
 } from '../../shared/types';
 import { getCardDefinition } from '../../shared/cardDatabase';
+import { getAbilitiesForCard } from '../../shared/abilityDefinitions';
 
 // Helper to get a card instance
 export function getCard(state: VanguardGameState, instanceId: string): CardInstance {
@@ -113,9 +114,36 @@ export function canAttack(
   const targetInstanceId = getUnitAt(state, opponentId, targetPosition);
   if (!targetInstanceId) return false;
 
-  // Target must be VG or front row RC
+  // Target must be VG or front row RC — unless attacker has canAttackBackRow
   if (targetPosition !== 'vanguard' && !FRONT_ROW_POSITIONS.includes(targetPosition as RearGuardPosition)) {
-    return false; // can't attack back row
+    // Check if attacker has Tejas-style back-row targeting ability
+    const attackerCard = getCard(state, attackerInstanceId);
+    const abilities = getAbilitiesForCard(attackerCard.cardId);
+    const hasBackRowAbility = abilities.some(a =>
+      a.effects.some(e => e.type === 'canAttackBackRow')
+    );
+
+    if (!hasBackRowAbility) {
+      return false; // can't attack back row without ability
+    }
+
+    // Tejas can only target the same column's back row
+    const sameColumnOnly = abilities.some(a =>
+      a.effects.some(e => e.type === 'canAttackBackRow' && e.sameColumn)
+    );
+
+    if (sameColumnOnly) {
+      // Check column mapping: front-left -> back-left, vanguard -> back-center, front-right -> back-right
+      const columnMap: Record<string, string> = {
+        'front-left': 'back-left',
+        'vanguard': 'back-center',
+        'front-right': 'back-right',
+      };
+      const expectedBackRow = columnMap[attackerPosition];
+      if (targetPosition !== expectedBackRow) {
+        return false;
+      }
+    }
   }
 
   return true;
@@ -242,6 +270,28 @@ export function getValidAttackTargets(
   for (const pos of FRONT_ROW_POSITIONS) {
     if (getUnitAt(state, opponentId, pos)) {
       targets.push(pos);
+    }
+  }
+
+  // Check for Tejas-style back row targeting
+  const attackerInstanceId = getUnitAt(state, playerId, attackerPosition);
+  if (attackerInstanceId) {
+    const attackerCard = getCard(state, attackerInstanceId);
+    const abilities = getAbilitiesForCard(attackerCard.cardId);
+    const hasBackRowAbility = abilities.some(a =>
+      a.effects.some(e => e.type === 'canAttackBackRow')
+    );
+
+    if (hasBackRowAbility) {
+      const columnMap: Record<string, RearGuardPosition> = {
+        'front-left': 'back-left',
+        'vanguard': 'back-center',
+        'front-right': 'back-right',
+      };
+      const backRowTarget = columnMap[attackerPosition];
+      if (backRowTarget && getUnitAt(state, opponentId, backRowTarget)) {
+        targets.push(backRowTarget);
+      }
     }
   }
 

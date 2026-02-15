@@ -21,6 +21,7 @@ function mapToDisplayPhase(phase: GamePhase): DisplayPhase | null {
   if (phase === 'main-phase') return 'Main';
   if (phase.startsWith('battle')) return 'Battle';
   if (phase === 'end-phase') return 'End';
+  if (phase === 'ability-pending') return 'Main'; // Abilities mostly fire during or near main phase
   return null;
 }
 

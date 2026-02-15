@@ -5,6 +5,7 @@ import {
 } from '../../shared/types';
 import { getCardDefinition } from '../../shared/cardDatabase';
 import { getCard, getOpponentId } from './validation';
+import { checkAbilitiesForEvent } from './abilities';
 
 export interface TriggerCheckResult {
   revealedCard: CardInstance;
@@ -43,6 +44,16 @@ export function performTriggerCheck(
   card.zone = 'trigger-zone';
   card.isFaceUp = true;
   player.triggerZone = topCardId;
+
+  // Hook: onDriveCheckReveal — fires for ALL drive checks
+  // (Brigitte, Tristan: +5000 if G3 RP revealed; Goku: retire G1-or-less if G3 Kagero)
+  if (context === 'drive') {
+    checkAbilitiesForEvent(state, {
+      event: 'onDriveCheckReveal',
+      playerId,
+      revealedCardId: topCardId,
+    });
+  }
 
   if (def.triggerType) {
     // Trigger detected!
@@ -231,21 +242,35 @@ export function recalculateBattlePowers(state: VanguardGameState): void {
   const attacker = getCard(state, battle.attackingUnit);
   const attackerDef = getCardDefinition(attacker.cardId);
 
-  let attackPower = attackerDef.power + attacker.turnPowerModifier;
+  let attackPower = attackerDef.power
+    + attacker.turnPowerModifier
+    + attacker.battlePowerModifier
+    + attacker.continuousPowerModifier;
 
   // Add boost power
   if (battle.boostingUnit) {
     const booster = getCard(state, battle.boostingUnit);
     const boosterDef = getCardDefinition(booster.cardId);
-    attackPower += boosterDef.power + booster.turnPowerModifier;
+    attackPower += boosterDef.power
+      + booster.turnPowerModifier
+      + booster.battlePowerModifier
+      + booster.continuousPowerModifier;
   }
 
   battle.attackPower = attackPower;
 
+  // Update attacker critical to include all modifiers
+  battle.attackerCritical = 1
+    + attacker.turnCriticalModifier
+    + attacker.battleCriticalModifier;
+
   // Defend power
   const target = getCard(state, battle.targetUnit);
   const targetDef = getCardDefinition(target.cardId);
-  let defendPower = targetDef.power + target.turnPowerModifier;
+  let defendPower = targetDef.power
+    + target.turnPowerModifier
+    + target.battlePowerModifier
+    + target.continuousPowerModifier;
 
   // Add guardian shield values
   for (const guardianId of battle.guardians) {

@@ -94,6 +94,10 @@ export interface CardInstance {
   isFaceUp: boolean;
   turnPowerModifier: number;
   turnCriticalModifier: number;
+  battlePowerModifier: number;     // cleared at closeBattle()
+  battleCriticalModifier: number;  // cleared at closeBattle()
+  continuousPowerModifier: number; // recalculated on demand (e.g. Gancelot)
+  lostTwinDrive: boolean;          // Dragonic Overlord re-stand effect
 }
 
 // ============================================
@@ -162,6 +166,7 @@ export type GamePhase =
   | 'battle-damage-trigger-assign'
   | 'battle-close-step'
   | 'end-phase'
+  | 'ability-pending'
   | 'game-over';
 
 // ============================================
@@ -228,13 +233,52 @@ export interface VanguardGameState {
   winner: string | null;
 
   actionLog: GameLogEntry[];
+
+  // Ability system
+  abilityPending: AbilityPendingState | null;
+  abilityQueue: QueuedAbility[];
 }
 
 export interface GameLogEntry {
   timestamp: number;
   playerId: string;
   message: string;
-  type: 'phase' | 'action' | 'trigger' | 'damage' | 'system';
+  type: 'phase' | 'action' | 'trigger' | 'damage' | 'system' | 'ability';
+}
+
+// ============================================
+// ABILITY PENDING STATE
+// ============================================
+
+export type AbilityPendingType =
+  | 'may-activate'      // optional: player may activate or decline
+  | 'select-target'     // player must choose a target
+  | 'select-discard'    // player must choose card(s) to discard from hand
+  | 'search-select';    // player must choose from search results
+
+export interface AbilityPendingState {
+  abilityId: string;            // e.g. "TD01/005-0"
+  cardInstanceId: string;       // the card whose ability triggered
+  cardId: string;               // cardId for lookup
+  playerId: string;             // whose ability it is
+  type: AbilityPendingType;
+  description: string;          // displayed to the player
+  optional: boolean;            // can the player decline?
+  validTargets?: string[];      // instanceIds of valid target units
+  searchResults?: string[];     // instanceIds found via deck search
+  minSelections?: number;
+  maxSelections?: number;
+  costDescription?: string;     // e.g. "Counter Blast (2)"
+  previousPhase: GamePhase;     // phase to return to after resolution
+  nonDiscardCostsPaid?: boolean; // true if non-discard costs were already paid in confirm step
+}
+
+export interface QueuedAbility {
+  abilityId: string;
+  cardInstanceId: string;
+  cardId: string;
+  playerId: string;
+  context: Record<string, any>; // additional context for resolution
 }
 
 // ============================================
@@ -251,6 +295,10 @@ export interface PublicCardInstance {
   isFaceUp: boolean;
   turnPowerModifier: number;
   turnCriticalModifier: number;
+  battlePowerModifier: number;
+  battleCriticalModifier: number;
+  continuousPowerModifier: number;
+  lostTwinDrive: boolean;
 }
 
 export interface PublicPlayerState {
@@ -306,6 +354,21 @@ export interface PublicBattleState {
   healDamageChoicePending: boolean;
 }
 
+export interface PublicAbilityPendingState {
+  abilityId: string;
+  cardInstanceId: string;
+  cardId: string;
+  playerId: string;
+  type: AbilityPendingType;
+  description: string;
+  optional: boolean;
+  validTargets?: PublicCardInstance[];
+  searchResults?: PublicCardInstance[];
+  minSelections?: number;
+  maxSelections?: number;
+  costDescription?: string;
+}
+
 export interface PublicVanguardGameState {
   phase: GamePhase;
   turnPlayerId: string;
@@ -317,6 +380,7 @@ export interface PublicVanguardGameState {
   rps: PublicRPSState | null;
   winner: string | null;
   actionLog: GameLogEntry[];
+  abilityPending: PublicAbilityPendingState | null;
 }
 
 // ============================================
@@ -344,7 +408,14 @@ export type GameAction =
   | { type: 'trigger:assignStandTarget'; targetInstanceId: string }
   | { type: 'trigger:chooseHealDamage'; damageInstanceId: string }
   | { type: 'endBattle' }
-  | { type: 'endTurn' };
+  | { type: 'endTurn' }
+  // Ability actions
+  | { type: 'ability:activate'; instanceId: string; abilityIndex: number }
+  | { type: 'ability:selectTarget'; targetInstanceId: string }
+  | { type: 'ability:selectDiscard'; cardInstanceIds: string[] }
+  | { type: 'ability:searchSelect'; cardInstanceId: string }
+  | { type: 'ability:confirm' }
+  | { type: 'ability:decline' };
 
 export interface ActionResult {
   success: boolean;

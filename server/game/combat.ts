@@ -8,6 +8,12 @@ import {
 import { getCardDefinition } from '../../shared/cardDatabase';
 import { getCard, getUnitAt, getOpponentId } from './validation';
 import { performTriggerCheck, recalculateBattlePowers, resolveRevealedCard } from './triggers';
+import {
+  checkAbilitiesForEvent,
+  clearBattleModifiers,
+  recalculateContinuousAbilities,
+  processAbilityQueue,
+} from './abilities';
 
 function addLog(
   state: VanguardGameState,
@@ -43,7 +49,7 @@ export function declareAttack(
   let driveChecks = 0;
   if (attackerPosition === 'vanguard') {
     if (attackerDef.grade >= 3) {
-      driveChecks = 2; // Twin Drive
+      driveChecks = attacker.lostTwinDrive ? 1 : 2; // Twin Drive (or 1 if lostTwinDrive)
     } else {
       driveChecks = 1; // Single drive for G1/G2 VG
     }
@@ -57,8 +63,8 @@ export function declareAttack(
     boostingPosition: null,
     targetUnit: targetInstanceId,
     targetPosition: targetPosition,
-    attackPower: attackerDef.power + attacker.turnPowerModifier,
-    defendPower: targetDef.power + getCard(state, targetInstanceId).turnPowerModifier,
+    attackPower: attackerDef.power + attacker.turnPowerModifier + attacker.battlePowerModifier + attacker.continuousPowerModifier,
+    defendPower: targetDef.power + getCard(state, targetInstanceId).turnPowerModifier + getCard(state, targetInstanceId).battlePowerModifier + getCard(state, targetInstanceId).continuousPowerModifier,
     guardians: [],
     driveChecksRemaining: driveChecks,
     driveCheckResults: [],
@@ -67,11 +73,22 @@ export function declareAttack(
     damageApplied: 0,
     triggerToAssign: null,
     triggerContext: null,
-    attackerCritical: 1 + attacker.turnCriticalModifier,
+    attackerCritical: 1 + attacker.turnCriticalModifier + attacker.battleCriticalModifier,
     healDamageChoicePending: false,
   };
 
   addLog(state, playerId, `${attackerDef.name} attacks ${targetDef.name}!`, 'action');
+
+  // Hook: onAttack abilities (e.g., Bors +3000, Randolf +3000 if hand > opp)
+  checkAbilitiesForEvent(state, {
+    event: 'onAttack',
+    playerId,
+    cardInstanceId: attackerInstanceId,
+  });
+
+  // Recalculate powers after ability modifiers
+  recalculateBattlePowers(state);
+
   state.phase = 'battle-boost-step';
 }
 
@@ -95,6 +112,14 @@ export function declareBoost(
 
   battle.boostingUnit = boosterInstanceId;
   battle.boostingPosition = boosterPosition;
+
+  // Hook: onBoost abilities (e.g., Wingal +4000 to Blaster Blade, Jarran +4000 to Tejas)
+  checkAbilitiesForEvent(state, {
+    event: 'onBoost',
+    playerId,
+    cardInstanceId: boosterInstanceId,
+    boostedUnitId: battle.attackingUnit!,
+  });
 
   recalculateBattlePowers(state);
 
@@ -261,14 +286,60 @@ export function resolveDamage(state: VanguardGameState): void {
       // Retire the rear-guard
       retireUnit(state, opponentId, battle.targetPosition as RearGuardPosition);
       addLog(state, state.turnPlayerId, `${targetDef.name} retired!`, 'damage');
+
+      // Hook: onAttackHitsRG (e.g., Dragonic Overlord re-stand)
+      if (battle.attackingUnit) {
+        checkAbilitiesForEvent(state, {
+          event: 'onAttackHitsRG',
+          playerId: state.turnPlayerId,
+          cardInstanceId: battle.attackingUnit,
+          hitRearGuard: true,
+        });
+      }
+
+      // Hook: onBoostedAttackHits (e.g., Aermo)
+      if (battle.boostingUnit) {
+        checkAbilitiesForEvent(state, {
+          event: 'onBoostedAttackHits',
+          playerId: state.turnPlayerId,
+          cardInstanceId: battle.boostingUnit,
+          boosterInstanceId: battle.boostingUnit,
+        });
+      }
+
+      // If abilities were queued, process them
+      if (state.abilityQueue.length > 0) {
+        // Store the current phase target so we return to close-step
+        state.phase = 'battle-close-step';
+        processAbilityQueue(state);
+        return;
+      }
+
       // Move to close step (no damage check for RG hits)
       state.phase = 'battle-close-step';
       return;
     }
 
+    // Hook: onBoostedAttackHits for VG hit too (e.g., Aermo)
+    if (battle.boostingUnit) {
+      checkAbilitiesForEvent(state, {
+        event: 'onBoostedAttackHits',
+        playerId: state.turnPlayerId,
+        cardInstanceId: battle.boostingUnit,
+        boosterInstanceId: battle.boostingUnit,
+      });
+    }
+
     // Attacking VG - deal damage equal to critical
     battle.damageToApply = battle.attackerCritical;
     battle.damageApplied = 0;
+
+    // If abilities were queued (like Aermo), process them before damage
+    if (state.abilityQueue.length > 0) {
+      state.phase = 'battle-damage-check';
+      processAbilityQueue(state);
+      return;
+    }
 
     // Start damage check sequence
     state.phase = 'battle-damage-check';
@@ -374,6 +445,9 @@ export function closeBattle(state: VanguardGameState): void {
   }
   opponent.guardianCircle = [];
 
+  // Clear battle-scoped modifiers on all cards
+  clearBattleModifiers(state);
+
   // Reset battle state but keep it for reference
   state.battle = null;
 
@@ -399,7 +473,22 @@ export function retireUnit(
   card.isRested = false;
   card.turnPowerModifier = 0;
   card.turnCriticalModifier = 0;
+  card.battlePowerModifier = 0;
+  card.battleCriticalModifier = 0;
 
   player.rearGuards[position] = null;
   player.dropZone.push(unitId);
+
+  // Hook: onOpponentRGRetired — check during main phase only
+  // Yaksha (superior ride from hand), Joka/Rakshasa (+3000)
+  const turnPlayerId = state.turnPlayerId;
+  const opponentOfRetiredUnit = getOpponentId(state, playerId);
+  const isMainPhaseRetire = state.phase === 'main-phase' || state.phase === 'ability-pending';
+
+  if (isMainPhaseRetire && opponentOfRetiredUnit === turnPlayerId) {
+    checkAbilitiesForEvent(state, {
+      event: 'onOpponentRGRetired',
+      playerId: turnPlayerId,
+    });
+  }
 }

@@ -123,9 +123,6 @@ export function setPlayerDeck(room: GameRoom, playerId: string, deckId: DeckId):
   const player = room.players.find((p: RoomPlayer) => p.id === playerId);
   if (!player) return false;
 
-  const otherHasDeck = room.players.some((p: RoomPlayer) => p.id !== playerId && p.deckId === deckId);
-  if (otherHasDeck) return false;
-
   player.deckId = deckId;
   return true;
 }
