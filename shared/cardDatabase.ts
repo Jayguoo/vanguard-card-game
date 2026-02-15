@@ -35,7 +35,7 @@ export const CARD_DATABASE: Record<string, CardDefinition> = {
     imageFile: 'TD01_002EN.png',
     imagePath: '/cards/td01/TD01_002EN.png',
     isStarterVanguard: false,
-    abilityText: '[AUTO](VC/RC):When this unit attacks, you may pay the cost. If you do, this unit gets [Power]+3000 until end of that battle.',
+    abilityText: '[AUTO](VC/RC):[Counter Blast (1)] When this unit attacks, you may pay the cost. If you do, this unit gets [Power]+3000 until end of that battle.',
   },
   'TD01/003': {
     cardId: 'TD01/003',
@@ -49,7 +49,7 @@ export const CARD_DATABASE: Record<string, CardDefinition> = {
     imageFile: 'TD01_003EN.png',
     imagePath: '/cards/td01/TD01_003EN.png',
     isStarterVanguard: false,
-    abilityText: '[CONT](VC):If you have a card named "Blaster Blade" in your soul, this unit gets [Power]+5000. [AUTO]:When this card is placed on (VC), search your deck for up to one card named "Blaster Blade", reveal it to your opponent, put it into your hand, and shuffle your deck.',
+    abilityText: '[ACT](VC):[Counter Blast (2)] If you have a card named "Blaster Blade" in your soul, this unit gets [Power]+5000/[Critical]+1 until end of turn. [ACT](Hand):[Reveal this card to your opponent, and put it on top of your deck] Search your deck for up to one card named "Blaster Blade", reveal it to your opponent, put it into your hand, and shuffle your deck.',
   },
   'TD01/004': {
     cardId: 'TD01/004',
@@ -77,7 +77,7 @@ export const CARD_DATABASE: Record<string, CardDefinition> = {
     imageFile: 'TD01_005EN.png',
     imagePath: '/cards/td01/TD01_005EN.png',
     isStarterVanguard: false,
-    abilityText: '[AUTO]:[Counter Blast (2)] When this unit is placed on (VC) or (RC), if you have a <Royal Paladin> vanguard, you may pay the cost. If you do, choose an opponent\'s grade 2 or greater rear-guard, and retire it.',
+    abilityText: '[AUTO]:[Counter Blast (2)] When this unit is placed on (VC), you may pay the cost. If you do, choose one of your opponent\'s rear-guards, and retire it. [AUTO]:[Counter Blast (2)] When this unit is placed on (RC), if you have a <Royal Paladin> vanguard, you may pay the cost. If you do, choose one of your opponent\'s grade 2 or greater rear-guards, and retire it.',
   },
   'TD01/006': {
     cardId: 'TD01/006',
@@ -91,7 +91,7 @@ export const CARD_DATABASE: Record<string, CardDefinition> = {
     imageFile: 'TD01_006EN.png',
     imagePath: '/cards/td01/TD01_006EN.png',
     isStarterVanguard: false,
-    abilityText: '[AUTO](VC/RC):When this unit\'s drive check reveals a grade 3 <Royal Paladin>, this unit gets [Power]+5000 until end of that battle.',
+    abilityText: '[AUTO](VC):When this unit\'s drive check reveals a grade 3 <Royal Paladin>, this unit gets [Power]+5000 until end of that battle.',
   },
   'TD01/007': {
     cardId: 'TD01/007',
@@ -161,7 +161,7 @@ export const CARD_DATABASE: Record<string, CardDefinition> = {
     imageFile: 'TD01_011EN.png',
     imagePath: '/cards/td01/TD01_011EN.png',
     isStarterVanguard: false,
-    abilityText: '[ACT](RC):[Choose a card from your hand, and discard it] When this unit attacks, you may pay the cost. If you do, this unit gets [Power]+4000 until end of turn.',
+    abilityText: '[AUTO](VC/RC):[Choose a card from your hand, and discard it] When this unit attacks, you may pay the cost. If you do, this unit gets [Power]+4000 until end of turn.',
   },
   'TD01/012': {
     cardId: 'TD01/012',
@@ -382,7 +382,7 @@ export const CARD_DATABASE: Record<string, CardDefinition> = {
     imageFile: 'TD02_010EN.png',
     imagePath: '/cards/td02/TD02_010EN.png',
     isStarterVanguard: false,
-    abilityText: '[ACT](RC):During your main phase, when an opponent\'s rear-guard is put into the drop zone, this unit gets [Power]+3000 until end of turn.',
+    abilityText: '[AUTO](RC):During your main phase, when an opponent\'s rear-guard is put into the drop zone, this unit gets [Power]+3000 until end of turn.',
   },
   'TD02/011': {
     cardId: 'TD02/011',

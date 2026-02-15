@@ -308,7 +308,7 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
   ],
 
   // #2 — Knight of Conviction, Bors
-  // [AUTO](VC/RC): On attack → self +3000 (battle). "May pay the cost" but TD has no cost.
+  // [AUTO](VC/RC):[CB(1)] When this unit attacks, you may pay the cost. +3000 (battle)
   'TD01/002': [
     {
       abilityId: 'TD01/002-0',
@@ -316,57 +316,63 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
       triggerEvent: 'onAttack',
       location: 'VCorRC',
       optional: true,
+      cost: { type: 'counterBlast', amount: 1 },
       conditions: [],
       effects: [
         { type: 'selfPowerUp', amount: 3000, scope: 'battle' },
       ],
-      description: 'Bors attacks! Activate +3000 power?',
+      description: 'Bors attacks! Pay CB(1) for +3000 power?',
     },
   ],
 
-  // #3a — Solitary Knight, Gancelot — CONT
-  // [CONT](VC): If "Blaster Blade" in soul → self +5000
-  // #3b — Solitary Knight, Gancelot — AUTO
-  // [AUTO]: On ride to VC → search deck for "Blaster Blade", add to hand
+  // #3a — Solitary Knight, Gancelot — ACT
+  // [ACT](VC):[CB(2)] If "Blaster Blade" in soul → +5000/+1 crit (turn)
+  // #3b — Gancelot — ACT (Hand) — put self on top of deck → search Blaster Blade
+  // Note: Hand ACT ability not yet supported by engine, so only VC ACT is implemented
   'TD01/003': [
     {
       abilityId: 'TD01/003-0',
-      timing: 'CONT',
-      triggerEvent: 'continuous',
+      timing: 'ACT',
+      triggerEvent: 'mainPhaseACT',
       location: 'VC',
-      optional: false,
+      optional: true,
+      cost: { type: 'counterBlast', amount: 2 },
       conditions: [
         { type: 'soulContainsName', name: 'Blaster Blade' },
       ],
       effects: [
-        { type: 'continuousPowerUp', amount: 5000 },
+        { type: 'selfPowerUp', amount: 5000, scope: 'turn' },
+        { type: 'selfCriticalUp', amount: 1, scope: 'turn' },
       ],
-      description: 'Gancelot gains +5000 power (Blaster Blade in soul).',
-    },
-    {
-      abilityId: 'TD01/003-1',
-      timing: 'AUTO',
-      triggerEvent: 'onPlaceVC',
-      location: 'VC',
-      optional: true,
-      conditions: [],
-      effects: [
-        { type: 'searchDeckForName', name: 'Blaster Blade', addToHand: true },
-      ],
-      description: 'Gancelot rides! Search deck for "Blaster Blade"?',
+      description: 'Activate Gancelot? Pay CB(2) for +5000 power and +1 critical! (Blaster Blade in soul)',
     },
   ],
 
   // TD01/004 — Knight of Silence, Gallatin — no ability
 
-  // #4 — Blaster Blade
-  // [AUTO]:[CB(2)] On place VC/RC, if RP vanguard → retire opp G2+ RG
+  // #4a — Blaster Blade (VC ability)
+  // [AUTO]:[CB(2)] On place VC → retire any opp RG
+  // #4b — Blaster Blade (RC ability)
+  // [AUTO]:[CB(2)] On place RC, if RP vanguard → retire opp G2+ RG
   'TD01/005': [
     {
       abilityId: 'TD01/005-0',
       timing: 'AUTO',
-      triggerEvent: 'onPlaceVCorRC',
-      location: 'VCorRC',
+      triggerEvent: 'onPlaceVC',
+      location: 'VC',
+      optional: true,
+      cost: { type: 'counterBlast', amount: 2 },
+      conditions: [],
+      effects: [
+        { type: 'retireOpponentRG', gradeCondition: 'any' },
+      ],
+      description: 'Blaster Blade rides! Pay CB(2) to retire an opponent\'s rear-guard?',
+    },
+    {
+      abilityId: 'TD01/005-1',
+      timing: 'AUTO',
+      triggerEvent: 'onPlaceRC',
+      location: 'RC',
       optional: true,
       cost: { type: 'counterBlast', amount: 2 },
       conditions: [
@@ -375,18 +381,18 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
       effects: [
         { type: 'retireOpponentRG', gradeCondition: 'gte2' },
       ],
-      description: 'Blaster Blade arrives! Pay CB(2) to retire an opponent\'s Grade 2+ rear-guard?',
+      description: 'Blaster Blade called! Pay CB(2) to retire an opponent\'s Grade 2+ rear-guard?',
     },
   ],
 
   // #5 — Knight of the Harp, Tristan
-  // [AUTO](VC/RC): Drive check reveals G3 RP → self +5000 (battle)
+  // [AUTO](VC): Drive check reveals G3 RP → self +5000 (battle)
   'TD01/006': [
     {
       abilityId: 'TD01/006-0',
       timing: 'AUTO',
       triggerEvent: 'onDriveCheckReveal',
-      location: 'VCorRC',
+      location: 'VC',
       optional: false,
       conditions: [
         { type: 'driveCheckGradeAndClan', grade: 3, clan: 'royal-paladin' },
@@ -456,20 +462,20 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
   ],
 
   // #9 — Knight of Rose, Morgana
-  // [ACT](RC): [Discard 1 from hand] → self +4000 (turn)
+  // [AUTO](VC/RC):[Discard 1] When this unit attacks → self +4000 (turn)
   'TD01/011': [
     {
       abilityId: 'TD01/011-0',
-      timing: 'ACT',
-      triggerEvent: 'mainPhaseACT',
-      location: 'RC',
+      timing: 'AUTO',
+      triggerEvent: 'onAttack',
+      location: 'VCorRC',
       optional: true,
       cost: { type: 'discardFromHand', amount: 1 },
       conditions: [],
       effects: [
         { type: 'selfPowerUp', amount: 4000, scope: 'turn' },
       ],
-      description: 'Activate Morgana? Discard 1 card to give her +4000 power this turn.',
+      description: 'Morgana attacks! Discard 1 card for +4000 power this turn?',
     },
   ],
 
