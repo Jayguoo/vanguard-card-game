@@ -4,6 +4,8 @@ import {
   FieldPosition,
   RearGuardPosition,
   BOOST_COLUMN_REVERSE,
+  FRONT_ROW_POSITIONS,
+  BACK_ROW_POSITIONS,
 } from '../../shared/types';
 import { getCardDefinition } from '../../shared/cardDatabase';
 import { getCard, getUnitAt, getOpponentId } from './validation';
@@ -297,6 +299,15 @@ export function resolveDamage(state: VanguardGameState): void {
         });
       }
 
+      // Hook: onAttackHits (e.g., Apollon — triggers on any hit, VG or RG)
+      if (battle.attackingUnit) {
+        checkAbilitiesForEvent(state, {
+          event: 'onAttackHits',
+          playerId: state.turnPlayerId,
+          cardInstanceId: battle.attackingUnit,
+        });
+      }
+
       // Hook: onBoostedAttackHits (e.g., Aermo)
       if (battle.boostingUnit) {
         checkAbilitiesForEvent(state, {
@@ -318,6 +329,34 @@ export function resolveDamage(state: VanguardGameState): void {
       // Move to close step (no damage check for RG hits)
       state.phase = 'battle-close-step';
       return;
+    }
+
+    // Hook: onAttackHitsVG (e.g., Gold Rutile's CB(2) stand, Storm unflip)
+    if (battle.attackingUnit) {
+      checkAbilitiesForEvent(state, {
+        event: 'onAttackHitsVG',
+        playerId: state.turnPlayerId,
+        cardInstanceId: battle.attackingUnit,
+        hitVanguard: true,
+      });
+    }
+
+    // Hook: onAttackHits (e.g., Apollon — triggers on any hit, VG or RG)
+    if (battle.attackingUnit) {
+      checkAbilitiesForEvent(state, {
+        event: 'onAttackHits',
+        playerId: state.turnPlayerId,
+        cardInstanceId: battle.attackingUnit,
+      });
+    }
+
+    // Hook: onAllyRGHitsVG — when a rear-guard hits the opponent's VG (Gold Rutile first ability)
+    if (battle.attackingPosition !== 'vanguard' && battle.attackingUnit) {
+      checkAbilitiesForEvent(state, {
+        event: 'onAllyRGHitsVG',
+        playerId: state.turnPlayerId,
+        attackingUnitId: battle.attackingUnit,
+      });
     }
 
     // Hook: onBoostedAttackHits for VG hit too (e.g., Aermo)
@@ -433,7 +472,8 @@ export function afterDamageTriggerAssign(state: VanguardGameState): void {
  */
 export function closeBattle(state: VanguardGameState): void {
   const battle = state.battle!;
-  const opponentId = getOpponentId(state, state.turnPlayerId);
+  const turnPlayerId = state.turnPlayerId;
+  const opponentId = getOpponentId(state, turnPlayerId);
   const opponent = state.players[opponentId];
 
   // Move all guardians to drop zone
@@ -444,6 +484,39 @@ export function closeBattle(state: VanguardGameState): void {
     opponent.dropZone.push(guardianId);
   }
   opponent.guardianCircle = [];
+
+  // Handle _returnToDeckAfterBattle (Battleraizer boost ability)
+  // Check all units on the turn player's field for this flag
+  const turnPlayer = state.players[turnPlayerId];
+  const allPositions = [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as RearGuardPosition[];
+  for (const pos of allPositions) {
+    const unitId = turnPlayer.rearGuards[pos];
+    if (!unitId) continue;
+    const card = state.allCards[unitId];
+    if ((card as any)._returnToDeckAfterBattle) {
+      // Remove the flag
+      delete (card as any)._returnToDeckAfterBattle;
+
+      // Return to bottom of deck
+      turnPlayer.rearGuards[pos] = null;
+      card.zone = 'deck';
+      card.position = undefined;
+      card.isRested = false;
+      card.turnPowerModifier = 0;
+      card.turnCriticalModifier = 0;
+      card.battlePowerModifier = 0;
+      card.battleCriticalModifier = 0;
+      turnPlayer.deck.push(unitId); // bottom of deck
+
+      const cardDef = getCardDefinition(card.cardId);
+      state.actionLog.push({
+        timestamp: Date.now(),
+        playerId: turnPlayerId,
+        message: `${cardDef.name} returned to the bottom of the deck`,
+        type: 'ability',
+      });
+    }
+  }
 
   // Clear battle-scoped modifiers on all cards
   clearBattleModifiers(state);

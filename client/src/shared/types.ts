@@ -8,7 +8,7 @@
 
 export type Grade = 0 | 1 | 2 | 3;
 
-export type Clan = 'royal-paladin' | 'kagero';
+export type Clan = 'royal-paladin' | 'kagero' | 'nova-grappler' | 'oracle-think-tank';
 
 export type TriggerType = 'critical' | 'draw' | 'stand' | 'heal';
 
@@ -363,6 +363,7 @@ export interface PublicAbilityPendingState {
   description: string;
   optional: boolean;
   validTargets?: PublicCardInstance[];
+  validTargetPositions?: string[];  // for position-based selections (e.g., callSelfToRC empty RC)
   searchResults?: PublicCardInstance[];
   minSelections?: number;
   maxSelections?: number;
@@ -426,7 +427,7 @@ export interface ActionResult {
 // DECK TYPES
 // ============================================
 
-export type DeckId = 'td01-blaster-blade' | 'td02-dragonic-overlord';
+export type DeckId = 'td01-blaster-blade' | 'td02-dragonic-overlord' | 'td03-gold-rutile' | 'td04-sakuya';
 
 export interface DeckComposition {
   deckId: DeckId;

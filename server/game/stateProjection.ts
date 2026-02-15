@@ -178,7 +178,13 @@ function buildPublicAbilityPending(
     description: pending.description,
     optional: pending.optional,
     validTargets: pending.validTargets
-      ? pending.validTargets.map(id => toPublicCard(state.allCards[id]))
+      ? pending.validTargets
+          .filter(id => state.allCards[id]) // Filter out pseudo-targets like position strings
+          .map(id => toPublicCard(state.allCards[id]))
+      : undefined,
+    // Pass raw target strings for position-based selections (e.g., callSelfToRC empty RC)
+    validTargetPositions: pending.validTargets
+      ? pending.validTargets.filter(id => !state.allCards[id])
       : undefined,
     searchResults: pending.searchResults
       ? pending.searchResults.map(id => toPublicCard(state.allCards[id]))

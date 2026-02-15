@@ -475,7 +475,8 @@ export class GameEngine {
     const idx = player.hand.indexOf(cardInstanceId);
     player.hand.splice(idx, 1);
 
-    // Move current VG to soul
+    // Move current VG to soul — save reference for onRiddenOver hook
+    const oldVgInstanceId = player.vanguardCircle;
     if (player.vanguardCircle) {
       const oldVg = getCard(this.state, player.vanguardCircle);
       oldVg.zone = 'soul';
@@ -498,6 +499,17 @@ export class GameEngine {
 
     // Recalculate continuous abilities (e.g., Gancelot +5000 if BB in soul)
     recalculateContinuousAbilities(this.state);
+
+    // Hook: onRiddenOver — the old VG was just ridden over (now in soul)
+    // e.g., Battleraizer FVG: can call itself to RC when ridden over by Nova Grappler
+    if (oldVgInstanceId) {
+      checkAbilitiesForEvent(this.state, {
+        event: 'onRiddenOver',
+        playerId,
+        cardInstanceId: oldVgInstanceId,
+        ridingClan: cardDef.clan,
+      });
+    }
 
     // Check for onPlaceVC abilities (e.g., Gancelot search)
     checkAbilitiesForEvent(this.state, {

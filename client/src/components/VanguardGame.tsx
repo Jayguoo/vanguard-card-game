@@ -226,15 +226,26 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     // Ability pending — highlight valid targets on my field
     if (phase === 'ability-pending' && gameState.abilityPending?.playerId === myId) {
       const pending = gameState.abilityPending;
-      if (pending.type === 'select-target' && pending.validTargets) {
+      if (pending.type === 'select-target') {
         const positions: FieldPosition[] = [];
-        for (const target of pending.validTargets) {
-          // Check my units
-          if (myState.vanguardCircle?.instanceId === target.instanceId) positions.push('vanguard');
-          for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as RearGuardPosition[]) {
-            if (myState.rearGuards[pos]?.instanceId === target.instanceId) positions.push(pos);
+
+        // Position-based targets (e.g., callSelfToRC — empty RC positions)
+        if (pending.validTargetPositions && pending.validTargetPositions.length > 0) {
+          for (const pos of pending.validTargetPositions) {
+            positions.push(pos as FieldPosition);
           }
         }
+
+        // Card-based targets
+        if (pending.validTargets) {
+          for (const target of pending.validTargets) {
+            if (myState.vanguardCircle?.instanceId === target.instanceId) positions.push('vanguard');
+            for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as RearGuardPosition[]) {
+              if (myState.rearGuards[pos]?.instanceId === target.instanceId) positions.push(pos);
+            }
+          }
+        }
+
         return positions;
       }
       return [];
@@ -245,6 +256,23 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       const positions: FieldPosition[] = [];
       for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as RearGuardPosition[]) {
         positions.push(pos);
+      }
+      return positions;
+    }
+
+    if (phase === 'main-phase' && isMyTurn && !selectedCardId) {
+      // Highlight units with ACT abilities that can be activated
+      const positions: FieldPosition[] = [];
+      if (myState.vanguardCircle) {
+        const actAbilities = getACTAbilities(myState.vanguardCircle.cardId);
+        if (actAbilities.length > 0) positions.push('vanguard');
+      }
+      for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as RearGuardPosition[]) {
+        const card = myState.rearGuards[pos];
+        if (card) {
+          const actAbilities = getACTAbilities(card.cardId);
+          if (actAbilities.length > 0) positions.push(pos);
+        }
       }
       return positions;
     }
@@ -425,6 +453,13 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     if (phase === 'ability-pending' && gameState.abilityPending?.playerId === myId) {
       const pending = gameState.abilityPending;
       if (pending.type === 'select-target') {
+        // Position-based targets (e.g., callSelfToRC — select an empty RC position)
+        if (pending.validTargetPositions?.includes(position)) {
+          await onAction({ type: 'ability:selectTarget', targetInstanceId: position });
+          return;
+        }
+
+        // Card-based targets
         const unitCard = position === 'vanguard'
           ? myState.vanguardCircle
           : myState.rearGuards[position as RearGuardPosition];
@@ -446,6 +481,43 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
         });
         setSelectedPosition(position);
         scrollTo(actionAreaRef);
+      }
+      return;
+    }
+
+    // Main phase: clicking on a unit (VG or RG) with ACT abilities — offer activation
+    if (phase === 'main-phase' && isMyTurn && !selectedCardId) {
+      const unitCard = position === 'vanguard'
+        ? myState.vanguardCircle
+        : myState.rearGuards[position as RearGuardPosition];
+      if (unitCard) {
+        const actAbilities = getACTAbilities(unitCard.cardId);
+        if (actAbilities.length > 0) {
+          // Show preview of the card
+          setPreviewCard(prev => {
+            const next = prev?.instanceId === unitCard.instanceId ? null : unitCard;
+            if (next) setZonePreview(null);
+            return next;
+          });
+
+          // Use the first ACT ability (most cards have only one)
+          const abilities = getAbilitiesForCard(unitCard.cardId);
+          const abilityIndex = abilities.indexOf(actAbilities[0]);
+          const abilityDesc = actAbilities[0].description.split('?')[0].split('!')[0];
+          setPendingAction({
+            action: { type: 'ability:activate', instanceId: unitCard.instanceId, abilityIndex },
+            description: `${abilityDesc}?`,
+          });
+          setSelectedPosition(position);
+          scrollTo(actionAreaRef);
+          return;
+        }
+        // Show preview even for non-ACT units
+        setPreviewCard(prev => {
+          const next = prev?.instanceId === unitCard.instanceId ? null : unitCard;
+          if (next) setZonePreview(null);
+          return next;
+        });
       }
       return;
     }

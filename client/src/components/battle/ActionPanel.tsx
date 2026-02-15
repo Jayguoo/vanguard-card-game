@@ -65,6 +65,15 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
         return null;
 
       case 'setup-mulligan':
+        if (gameState.myState.mulliganComplete) {
+          return (
+            <div className="action-panel__group">
+              <p className="action-panel__hint action-panel__hint--waiting">
+                Waiting for opponent to exchange...
+              </p>
+            </div>
+          );
+        }
         return (
           <div className="action-panel__group">
             <p className="action-panel__hint">

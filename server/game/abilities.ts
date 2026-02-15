@@ -56,6 +56,12 @@ export interface AbilityContext {
   boosterInstanceId?: string;
   /** For onPlaceVC/RC: the card that was just placed */
   placedCardId?: string;
+  /** For onRiddenOver: the clan of the unit that rode over */
+  ridingClan?: string;
+  /** For onAttackHitsVG / onAllyRGHitsVG: whether the attack hit the VG */
+  hitVanguard?: boolean;
+  /** For onAllyRGHitsVG: the attacking unit instance ID */
+  attackingUnitId?: string;
 }
 
 // ============================================
@@ -79,7 +85,8 @@ export function checkAbilitiesForEvent(
   const isSingleCardEvent =
     event === 'onPlaceVC' || event === 'onPlaceRC' || event === 'onPlaceVCorRC' ||
     event === 'onAttack' || event === 'onBoost' ||
-    event === 'onAttackHitsRG' || event === 'onBoostedAttackHits';
+    event === 'onAttackHitsRG' || event === 'onBoostedAttackHits' ||
+    event === 'onAttackHitsVG' || event === 'onAttackHits' || event === 'onRiddenOver';
 
   // Gather all units on the field for the relevant player(s)
   const playerIds = getPlayersToCheck(state, event, playerId);
@@ -115,6 +122,11 @@ export function checkAbilitiesForEvent(
     if (event === 'onOpponentRGRetired') {
       checkHandAbilitiesForEvent(state, pid, context);
     }
+
+    // For 'onRiddenOver', check soul for abilities (e.g., Battleraizer FVG)
+    if (event === 'onRiddenOver') {
+      checkSoulAbilitiesForEvent(state, pid, context);
+    }
   }
 }
 
@@ -143,6 +155,34 @@ function checkHandAbilitiesForEvent(
 }
 
 /**
+ * Check soul for abilities that trigger from soul (like Battleraizer FVG).
+ * Used for onRiddenOver — the card has already been moved to soul when this fires.
+ */
+function checkSoulAbilitiesForEvent(
+  state: VanguardGameState,
+  playerId: string,
+  context: AbilityContext,
+): void {
+  const player = state.players[playerId];
+
+  for (const instanceId of player.soul) {
+    // For onRiddenOver, only check the specific card that was ridden over
+    if (context.cardInstanceId && instanceId !== context.cardInstanceId) continue;
+
+    const card = state.allCards[instanceId];
+    const abilities = getAbilitiesForCard(card.cardId);
+
+    for (const ability of abilities) {
+      if (ability.triggerEvent !== context.event) continue;
+      // Soul abilities don't have a standard location check — they fire from soul
+      if (!checkConditions(state, playerId, instanceId, ability.conditions, context)) continue;
+
+      resolveOrQueueAbility(state, playerId, instanceId, ability, context);
+    }
+  }
+}
+
+/**
  * Determine which players' units to scan for a given event.
  */
 function getPlayersToCheck(
@@ -161,6 +201,16 @@ function getPlayersToCheck(
     case 'onBoostedAttackHits':
       // The turn player's booster checks
       return [state.turnPlayerId];
+    case 'onAllyRGHitsVG':
+      // The turn player's VG checks when their RG hits the opponent VG
+      return [state.turnPlayerId];
+    case 'onAttackHitsVG':
+    case 'onAttackHits':
+      // The attacking unit checks — turn player's field
+      return [state.turnPlayerId];
+    case 'onRiddenOver':
+      // The card that was ridden over checks (it's now in soul, but we check before it moves)
+      return [playerId];
     default:
       return [playerId];
   }
@@ -296,6 +346,23 @@ function checkSingleCondition(
       return vgDef.grade === condition.grade;
     }
 
+    case 'riddenOverByClan': {
+      return context.ridingClan === condition.clan;
+    }
+
+    case 'handSizeAtLeast': {
+      return player.hand.length >= condition.amount;
+    }
+
+    case 'boostsVanguardOfClan': {
+      // The unit being boosted must be this player's vanguard and be of the specified clan
+      if (!context.boostedUnitId || !player.vanguardCircle) return false;
+      if (context.boostedUnitId !== player.vanguardCircle) return false;
+      const vg = state.allCards[player.vanguardCircle];
+      const vgDef = getCardDefinition(vg.cardId);
+      return vgDef.clan === condition.clan;
+    }
+
     default:
       return true;
   }
@@ -347,6 +414,9 @@ function canAutoResolve(ability: AbilityDef): boolean {
     if (effect.type === 'chooseAllyPowerUp') return false;
     if (effect.type === 'searchDeckForName') return false;
     if (effect.type === 'superiorRideFromHand') return false;
+    if (effect.type === 'standAllyRG') return false;
+    if (effect.type === 'callSelfToRC') return false;
+    if (effect.type === 'drawThenReturnToDeck') return false;
   }
 
   return true;
@@ -438,6 +508,7 @@ function getPendingType(ability: AbilityDef): 'may-activate' | 'select-target' |
     if (effect.type === 'chooseAllyPowerUp') return 'select-target';
     if (effect.type === 'searchDeckForName') return 'search-select';
     if (effect.type === 'superiorRideFromHand') return 'may-activate';
+    if (effect.type === 'drawThenReturnToDeck') return 'may-activate';
   }
 
   // ACT abilities with cost that need discard
@@ -538,7 +609,8 @@ export function resolvePlayerAbilityChoice(
 
       // Check if after confirming, we need target selection
       const needsTarget = ability.effects.some(e =>
-        e.type === 'retireOpponentRG' || e.type === 'chooseAllyPowerUp'
+        e.type === 'retireOpponentRG' || e.type === 'chooseAllyPowerUp' ||
+        e.type === 'standAllyRG' || e.type === 'callSelfToRC'
       );
       const needsSearch = ability.effects.some(e => e.type === 'searchDeckForName');
 
@@ -566,6 +638,26 @@ export function resolvePlayerAbilityChoice(
         }
         pending.type = 'search-select';
         pending.searchResults = searchResults;
+        return true;
+      }
+
+      // Check for drawThenReturnToDeck — draw first, then select cards to return
+      const drawReturnEffect = ability.effects.find(e => e.type === 'drawThenReturnToDeck');
+      if (drawReturnEffect && drawReturnEffect.type === 'drawThenReturnToDeck') {
+        // Draw the cards
+        applyEffect(state, playerId, pending.cardInstanceId, drawReturnEffect, {
+          event: ability.triggerEvent,
+          playerId,
+        });
+        // Now transition to select-discard for the return-to-deck part
+        // We reuse select-discard but the handler will put them on top of deck instead of drop zone
+        pending.type = 'select-discard';
+        pending.minSelections = drawReturnEffect.returnAmount;
+        pending.maxSelections = drawReturnEffect.returnAmount;
+        pending.description = `Choose ${drawReturnEffect.returnAmount} card(s) from your hand to return to the top of your deck.`;
+        pending.nonDiscardCostsPaid = true; // costs already paid, mark to prevent double-pay
+        (pending as any)._returnToDeckNotDrop = true; // flag to put on top of deck instead of drop zone
+        addLog(state, playerId, ability.description, 'ability');
         return true;
       }
 
@@ -605,6 +697,26 @@ export function resolvePlayerAbilityChoice(
       // Validate all cards are in hand
       for (const cid of choice.cardInstanceIds) {
         if (!player.hand.includes(cid)) return false;
+      }
+
+      // Check if this is a "return to deck" selection (from drawThenReturnToDeck)
+      const isReturnToDeck = (pending as any)._returnToDeckNotDrop === true;
+
+      if (isReturnToDeck) {
+        // Return selected cards to top of deck (not drop zone)
+        for (const cid of choice.cardInstanceIds) {
+          const idx = player.hand.indexOf(cid);
+          if (idx === -1) continue;
+          player.hand.splice(idx, 1);
+          const card = state.allCards[cid];
+          card.zone = 'deck';
+          card.isFaceUp = false;
+          player.deck.unshift(cid); // top of deck
+          const def = getCardDefinition(card.cardId);
+          addLog(state, playerId, `Returned ${def.name} to top of deck`, 'ability');
+        }
+        finishAbilityPending(state);
+        return true;
       }
 
       // Pay cost (discard the selected cards)
@@ -713,6 +825,18 @@ export function canPayCost(
       return card.zone !== 'vanguard-circle';
     }
 
+    case 'restSelf': {
+      // Unit must be standing (not rested)
+      if (!instanceId) return false;
+      const card = state.allCards[instanceId];
+      return !card.isRested;
+    }
+
+    case 'soulBlast': {
+      const player = state.players[playerId];
+      return player.soul.length >= cost.amount;
+    }
+
     case 'compound': {
       return cost.costs.every(c => canPayCost(state, playerId, c, instanceId));
     }
@@ -756,6 +880,29 @@ export function payCost(
       break;
     }
 
+    case 'restSelf': {
+      if (!instanceId) break;
+      const card = state.allCards[instanceId];
+      card.isRested = true;
+      addLog(state, playerId, `Rested ${getCardDefinition(card.cardId).name}`, 'ability');
+      break;
+    }
+
+    case 'soulBlast': {
+      const player = state.players[playerId];
+      let remaining = cost.amount;
+      while (remaining > 0 && player.soul.length > 0) {
+        const soulCardId = player.soul.shift()!;
+        const soulCard = state.allCards[soulCardId];
+        soulCard.zone = 'drop-zone';
+        soulCard.position = undefined;
+        player.dropZone.push(soulCardId);
+        remaining--;
+      }
+      addLog(state, playerId, `Soul Blast (${cost.amount})`, 'ability');
+      break;
+    }
+
     case 'compound': {
       for (const c of cost.costs) {
         payCost(state, playerId, c, instanceId);
@@ -779,6 +926,12 @@ function payNonDiscardCosts(
       payCost(state, playerId, cost, instanceId);
       break;
     case 'putSelfToSoul':
+      payCost(state, playerId, cost, instanceId);
+      break;
+    case 'restSelf':
+      payCost(state, playerId, cost, instanceId);
+      break;
+    case 'soulBlast':
       payCost(state, playerId, cost, instanceId);
       break;
     case 'compound':
@@ -876,10 +1029,121 @@ function applyEffect(
       break;
     }
 
+    case 'unflipDamage': {
+      const player = state.players[playerId];
+      let remaining = effect.amount;
+      for (const dmgId of player.damageZone) {
+        if (remaining <= 0) break;
+        const card = state.allCards[dmgId];
+        if (!card.isFaceUp) {
+          card.isFaceUp = true;
+          remaining--;
+        }
+      }
+      if (effect.amount > 0) {
+        addLog(state, playerId, `Unflipped ${effect.amount} damage`, 'ability');
+      }
+      break;
+    }
+
+    case 'callSelfToRC': {
+      // Handled via applyTargetedEffect (needs RC target selection)
+      break;
+    }
+
+    case 'boostedUnitPowerUpThenReturnToDeck': {
+      // Give the boosted unit power, and schedule return to deck at end of battle
+      const boostedId = context.boostedUnitId || state.battle?.attackingUnit;
+      if (!boostedId) break;
+      const boosted = state.allCards[boostedId];
+      boosted.battlePowerModifier += effect.amount;
+
+      // Mark this unit for return to deck at end of battle
+      const card = state.allCards[instanceId];
+      (card as any)._returnToDeckAfterBattle = true;
+      break;
+    }
+
+    case 'eachPlayerDraw': {
+      // Both players draw — owner first, then opponent
+      const player = state.players[playerId];
+      const opponentId = getOpponentId(state, playerId);
+      const opponent = state.players[opponentId];
+
+      for (let i = 0; i < effect.amount; i++) {
+        if (player.deck.length === 0) break;
+        const cardId = player.deck.shift()!;
+        const drawn = state.allCards[cardId];
+        drawn.zone = 'hand';
+        drawn.isFaceUp = true;
+        player.hand.push(cardId);
+      }
+
+      for (let i = 0; i < effect.amount; i++) {
+        if (opponent.deck.length === 0) break;
+        const cardId = opponent.deck.shift()!;
+        const drawn = state.allCards[cardId];
+        drawn.zone = 'hand';
+        drawn.isFaceUp = true;
+        opponent.hand.push(cardId);
+      }
+      break;
+    }
+
+    case 'returnAllClanRGsToHand': {
+      const player = state.players[playerId];
+      const allPositions = [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as RearGuardPosition[];
+      for (const pos of allPositions) {
+        const unitId = player.rearGuards[pos];
+        if (!unitId) continue;
+        const card = state.allCards[unitId];
+        const def = getCardDefinition(card.cardId);
+        if (def.clan !== effect.clan) continue;
+
+        // Return to hand
+        player.rearGuards[pos] = null;
+        card.zone = 'hand';
+        card.position = undefined;
+        card.isRested = false;
+        card.turnPowerModifier = 0;
+        card.turnCriticalModifier = 0;
+        card.battlePowerModifier = 0;
+        card.battleCriticalModifier = 0;
+        card.isFaceUp = true;
+        player.hand.push(unitId);
+        addLog(state, playerId, `${def.name} returns to hand!`, 'ability');
+      }
+      break;
+    }
+
+    case 'continuousPowerUpDuringYourTurn': {
+      // Handled by recalculateContinuousAbilities
+      break;
+    }
+
+    case 'drawThenReturnToDeck': {
+      // Draw cards first, then the player will be prompted to return some to deck
+      // The drawing part happens here; the return is handled via the pending flow
+      const player = state.players[playerId];
+      for (let i = 0; i < effect.drawAmount; i++) {
+        if (player.deck.length === 0) break;
+        const cardId = player.deck.shift()!;
+        const drawn = state.allCards[cardId];
+        drawn.zone = 'hand';
+        drawn.isFaceUp = true;
+        player.hand.push(cardId);
+      }
+      addLog(state, playerId, `Drew ${effect.drawAmount} card(s)`, 'ability');
+      // Note: the return-to-deck selection is handled by the pending flow
+      // (see getPendingType and resolvePlayerAbilityChoice)
+      break;
+    }
+
     // These require targeting — handled via applyTargetedEffect
     case 'retireOpponentRG':
     case 'chooseAllyPowerUp':
     case 'searchDeckForName':
+    case 'standAllyRG':
       break;
   }
 }
@@ -912,6 +1176,42 @@ function applyTargetedEffect(
       }
       const targetDef = getCardDefinition(target.cardId);
       addLog(state, playerId, `${targetDef.name} gets +${effect.amount} power!`, 'ability');
+      break;
+    }
+
+    case 'standAllyRG': {
+      const target = state.allCards[targetInstanceId];
+      target.isRested = false;
+      const targetDef = getCardDefinition(target.cardId);
+      addLog(state, playerId, `${targetDef.name} stands!`, 'ability');
+      break;
+    }
+
+    case 'callSelfToRC': {
+      // targetInstanceId here is actually the position encoded as the card's instanceId
+      // But since we need an empty RC position, we use a special encoding
+      // The card is currently in soul (just ridden over) — move it to the selected RC
+      const card = state.allCards[instanceId];
+      const player = state.players[playerId];
+
+      // Remove from soul
+      const soulIdx = player.soul.indexOf(instanceId);
+      if (soulIdx !== -1) {
+        player.soul.splice(soulIdx, 1);
+      }
+
+      // Find the target position — the targetInstanceId is actually a position string for empty RCs
+      // We use a convention: for callSelfToRC, valid targets are empty RC positions encoded as pseudo-instanceIds
+      // The target selection returns a position string like "front-left", "back-center", etc.
+      const position = targetInstanceId as RearGuardPosition;
+      card.zone = `${position}-rc` as any;
+      card.position = position;
+      card.isFaceUp = true;
+      card.isRested = false;
+      player.rearGuards[position] = instanceId;
+
+      const cardDef = getCardDefinition(card.cardId);
+      addLog(state, playerId, `Called ${cardDef.name} to rear-guard!`, 'ability');
       break;
     }
 
@@ -981,6 +1281,38 @@ export function getValidTargets(
         }
         break;
       }
+
+      case 'standAllyRG': {
+        // Find all rested RGs owned by the player
+        const player = state.players[playerId];
+        for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS]) {
+          const unitId = player.rearGuards[pos as RearGuardPosition];
+          if (!unitId) continue;
+          const card = state.allCards[unitId];
+          if (!card.isRested) continue; // Only rested units can be stood
+
+          // Check clan restriction
+          if (effect.clanRestriction) {
+            const def = getCardDefinition(card.cardId);
+            if (def.clan !== effect.clanRestriction) continue;
+          }
+
+          targets.push(unitId);
+        }
+        break;
+      }
+
+      case 'callSelfToRC': {
+        // Find empty RC positions — return position strings as pseudo targets
+        const player = state.players[playerId];
+        for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS]) {
+          if (!player.rearGuards[pos as RearGuardPosition]) {
+            // Use position string as the "target" — applyTargetedEffect will interpret it
+            targets.push(pos);
+          }
+        }
+        break;
+      }
     }
   }
 
@@ -1042,6 +1374,12 @@ export function recalculateContinuousAbilities(state: VanguardGameState): void {
         for (const effect of ability.effects) {
           if (effect.type === 'continuousPowerUp') {
             card.continuousPowerModifier += effect.amount;
+          }
+          if (effect.type === 'continuousPowerUpDuringYourTurn') {
+            // Only active during this player's turn
+            if (state.turnPlayerId === playerId) {
+              card.continuousPowerModifier += effect.amount;
+            }
           }
         }
       }
@@ -1273,6 +1611,10 @@ function formatCost(cost: AbilityCost): string {
       return `Discard ${cost.amount} from hand`;
     case 'putSelfToSoul':
       return 'Put this unit into soul';
+    case 'restSelf':
+      return 'Rest this unit';
+    case 'soulBlast':
+      return `Soul Blast (${cost.amount})`;
     case 'compound':
       return cost.costs.map(c => formatCost(c)).join(' & ');
     default:

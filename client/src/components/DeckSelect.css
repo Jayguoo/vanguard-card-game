@@ -56,7 +56,7 @@
   align-items: center;
   padding: 32px 24px;
   gap: 32px;
-  max-width: 900px;
+  max-width: 1300px;
   margin: 0 auto;
   width: 100%;
 }
@@ -112,13 +112,13 @@
 /* Deck cards */
 .deck-select__decks {
   display: flex;
-  gap: 32px;
+  gap: 24px;
   justify-content: center;
   flex-wrap: wrap;
 }
 
 .deck-select__deck {
-  width: 340px;
+  width: 280px;
   background: rgba(20, 16, 45, 0.8);
   border: 2px solid rgba(100, 80, 200, 0.2);
   border-radius: 16px;
@@ -143,6 +143,16 @@
   box-shadow: 0 12px 40px rgba(220, 80, 40, 0.25);
 }
 
+.deck-select__deck--nova-grappler:hover:not(.deck-select__deck--disabled) {
+  border-color: rgba(255, 200, 50, 0.5);
+  box-shadow: 0 12px 40px rgba(220, 180, 40, 0.25);
+}
+
+.deck-select__deck--oracle-think-tank:hover:not(.deck-select__deck--disabled) {
+  border-color: rgba(180, 100, 220, 0.5);
+  box-shadow: 0 12px 40px rgba(150, 80, 200, 0.25);
+}
+
 /* Selected state */
 .deck-select__deck--selected {
   border-color: #ffd700 !important;
@@ -156,6 +166,14 @@
 
 .deck-select__deck--selected.deck-select__deck--kagero {
   box-shadow: 0 0 24px rgba(255, 100, 50, 0.3), 0 0 12px rgba(255, 215, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+.deck-select__deck--selected.deck-select__deck--nova-grappler {
+  box-shadow: 0 0 24px rgba(255, 200, 50, 0.3), 0 0 12px rgba(255, 215, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+.deck-select__deck--selected.deck-select__deck--oracle-think-tank {
+  box-shadow: 0 0 24px rgba(180, 100, 220, 0.3), 0 0 12px rgba(255, 215, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Taken/disabled state */
@@ -172,7 +190,7 @@
 .deck-select__deck-image-wrapper {
   position: relative;
   width: 100%;
-  height: 380px;
+  height: 310px;
   overflow: hidden;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%);
 }
@@ -244,6 +262,14 @@
 
 .deck-select__deck--kagero .deck-select__deck-clan {
   color: rgba(255, 120, 60, 0.9);
+}
+
+.deck-select__deck--nova-grappler .deck-select__deck-clan {
+  color: rgba(255, 210, 60, 0.9);
+}
+
+.deck-select__deck--oracle-think-tank .deck-select__deck-clan {
+  color: rgba(200, 140, 255, 0.9);
 }
 
 .deck-select__deck-description {

@@ -12,7 +12,7 @@ interface DeckSelectProps {
   onLeave: () => void;
 }
 
-const DECK_IDS: DeckId[] = ['td01-blaster-blade', 'td02-dragonic-overlord'];
+const DECK_IDS: DeckId[] = ['td01-blaster-blade', 'td02-dragonic-overlord', 'td03-gold-rutile', 'td04-sakuya'];
 
 export const DeckSelect: React.FC<DeckSelectProps> = ({
   room,
@@ -74,7 +74,10 @@ export const DeckSelect: React.FC<DeckSelectProps> = ({
             const coverCard = CARD_DATABASE[comp.coverCardId];
             const isSelected = myDeckId === deckId;
             const isDisabled = isReady;
-            const clanClass = comp.clan === 'royal-paladin' ? 'royal-paladin' : 'kagero';
+            const clanClass = comp.clan === 'royal-paladin' ? 'royal-paladin'
+              : comp.clan === 'kagero' ? 'kagero'
+              : comp.clan === 'nova-grappler' ? 'nova-grappler'
+              : 'oracle-think-tank';
 
             return (
               <div
