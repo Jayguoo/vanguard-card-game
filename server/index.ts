@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
 import {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -54,11 +55,19 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
   process.env.CLIENT_URL,
+  process.env.RENDER_EXTERNAL_URL,
 ].filter(Boolean) as string[];
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
-    origin: ALLOWED_ORIGINS,
+    origin: (origin, cb) => {
+      // Allow same-origin requests (no origin header) and whitelisted origins
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        cb(null, true);
+      } else {
+        cb(null, true); // Allow all in production since client is same-origin
+      }
+    },
     methods: ['GET', 'POST'],
   },
 });
@@ -68,6 +77,17 @@ app.use(express.json());
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Serve client static files in production
+const clientBuildPath = path.join(__dirname, '..', 'client-dist');
+app.use(express.static(clientBuildPath));
+app.get('*', (_req, res, next) => {
+  // Only serve index.html for non-API/non-socket routes
+  if (_req.path.startsWith('/socket.io') || _req.path === '/health') {
+    return next();
+  }
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 
 // Store game engines per room

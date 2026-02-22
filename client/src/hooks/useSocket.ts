@@ -19,7 +19,10 @@ import {
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+// In production (served from same origin), use '' so Socket.IO connects to same host.
+// In development, fall back to localhost:3001.
+const SERVER_URL = import.meta.env.VITE_SERVER_URL
+  || (import.meta.env.DEV ? 'http://localhost:3001' : '');
 
 export interface AppState {
   room: PublicGameRoom | null;
