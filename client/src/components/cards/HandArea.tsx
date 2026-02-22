@@ -9,6 +9,9 @@ interface HandAreaProps {
   highlightedCardIds?: string[];
   onCardClick?: (card: PublicCardInstance) => void;
   onCardRightClick?: (card: PublicCardInstance, event: React.MouseEvent) => void;
+  onCardHover?: (card: PublicCardInstance | null) => void;
+  onDragStart?: (card: PublicCardInstance) => void;
+  onDragEnd?: () => void;
 }
 
 export const HandArea: React.FC<HandAreaProps> = ({
@@ -17,9 +20,10 @@ export const HandArea: React.FC<HandAreaProps> = ({
   highlightedCardIds = [],
   onCardClick,
   onCardRightClick,
+  onCardHover,
+  onDragStart,
+  onDragEnd,
 }) => {
-  const cardCount = cards.length;
-
   // Track entering cards for draw animation
   const prevCardIdsRef = useRef<Set<string>>(new Set());
   const [enteringIds, setEnteringIds] = useState<Set<string>>(new Set());
@@ -44,27 +48,12 @@ export const HandArea: React.FC<HandAreaProps> = ({
     }
   }, [cards]);
 
-  // Fan layout calculations
+  // Flat hand layout — no curve, no rotation
   const getCardStyle = (index: number): React.CSSProperties => {
-    if (cardCount <= 1) {
-      return {};
-    }
-
-    // Maximum fan spread and rotation
-    const maxTotalAngle = Math.min(cardCount * 3, 30); // degrees total spread
-    const maxTotalOffset = Math.min(cardCount * 2, 20); // px vertical arc
-
-    const normalizedPos = cardCount > 1 ? (index / (cardCount - 1)) * 2 - 1 : 0; // -1 to 1
-    const angle = normalizedPos * (maxTotalAngle / 2);
-    const verticalOffset = Math.abs(normalizedPos) * maxTotalOffset;
-
-    // Overlap: shift each card to the left for tighter spacing
-    const overlapOffset = (index - (cardCount - 1) / 2) * 48;
-
     const isSelected = cards[index] && cards[index].instanceId === selectedCardId;
 
     return {
-      transform: `translateX(${overlapOffset}px) translateY(${isSelected ? -16 + verticalOffset : verticalOffset}px) rotate(${angle}deg)`,
+      transform: isSelected ? 'translateY(-16px)' : undefined,
       zIndex: index,
     };
   };
@@ -76,6 +65,7 @@ export const HandArea: React.FC<HandAreaProps> = ({
           const isSelected = card.instanceId === selectedCardId;
           const isHighlighted = highlightedCardIds.includes(card.instanceId);
           const isEntering = enteringIds.has(card.instanceId);
+          const isDraggable = isHighlighted && !!onDragStart;
 
           return (
             <div
@@ -84,8 +74,16 @@ export const HandArea: React.FC<HandAreaProps> = ({
                 'hand-area__card-wrapper',
                 isSelected ? 'hand-area__card-wrapper--selected' : '',
                 isEntering ? 'hand-area__card-wrapper--entering' : '',
+                isDraggable ? 'hand-area__card-wrapper--draggable' : '',
               ].filter(Boolean).join(' ')}
               style={getCardStyle(index)}
+              draggable={isDraggable}
+              onDragStart={isDraggable ? (e) => {
+                e.dataTransfer.setData('text/plain', card.instanceId);
+                e.dataTransfer.effectAllowed = 'move';
+                onDragStart(card);
+              } : undefined}
+              onDragEnd={onDragEnd}
             >
               <VanguardCard
                 card={card}
@@ -101,6 +99,8 @@ export const HandArea: React.FC<HandAreaProps> = ({
                       }
                     : undefined
                 }
+                onMouseEnter={onCardHover ? () => onCardHover(card) : undefined}
+                onMouseLeave={onCardHover ? () => onCardHover(null) : undefined}
                 showPowerOverlay={false}
               />
             </div>

@@ -1,0 +1,15 @@
+{
+  "users": {
+    "uEAoB5kR36zh": {
+      "userId": "uEAoB5kR36zh",
+      "username": "Kai",
+      "passwordHash": "$2b$10$WgtFN0z9uY4YndrHDFTnrOn6mqHP6W06zXdDI7WYltxKOySc/HKjC",
+      "fighterName": "Kai",
+      "friends": [],
+      "createdAt": 1771398522155
+    }
+  },
+  "usernameLookup": {
+    "kai": "uEAoB5kR36zh"
+  }
+}

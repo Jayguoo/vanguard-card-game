@@ -73,8 +73,10 @@ export function performTriggerCheck(
         break;
 
       case 'heal': {
-        // Heal 1 damage if the player has any damage
-        if (player.damageZone.length > 0) {
+        // Heal 1 damage only if the player has equal or more damage than the opponent
+        const opponentId = getOpponentId(state, playerId);
+        const opponent = state.players[opponentId];
+        if (player.damageZone.length > 0 && player.damageZone.length >= opponent.damageZone.length) {
           // Mark that heal choice is pending — player picks during trigger assign
           state.battle!.healDamageChoicePending = true;
           autoEffectApplied = 'Choose a damage card to heal';

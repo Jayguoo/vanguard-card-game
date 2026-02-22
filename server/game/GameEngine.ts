@@ -4,6 +4,7 @@ import {
   ActionResult,
   PublicVanguardGameState,
   DeckId,
+  CustomDeckComposition,
   GamePhase,
   RearGuardPosition,
   FieldPosition,
@@ -13,7 +14,7 @@ import {
   BACK_ROW_POSITIONS,
 } from '../../shared/types';
 import { getCardDefinition } from '../../shared/cardDatabase';
-import { buildDeck, createInitialPlayerState, reshuffleDeck } from './deckBuilder';
+import { buildDeck, buildDeckFromCustom, createInitialPlayerState, reshuffleDeck } from './deckBuilder';
 import {
   canRide, canCall, canAttack, canBoost, canGuard, canIntercept,
   canMoveRearGuard, getCard, getUnitAt, getOpponentId, getVanguardGrade,
@@ -47,14 +48,16 @@ export class GameEngine {
   constructor(
     player1Id: string,
     player1Name: string,
-    player1DeckId: DeckId,
+    player1Deck: DeckId | CustomDeckComposition,
     player2Id: string,
     player2Name: string,
-    player2DeckId: DeckId,
+    player2Deck: DeckId | CustomDeckComposition,
   ) {
     // Build decks
-    const deck1 = buildDeck(player1DeckId, player1Id);
-    const deck2 = buildDeck(player2DeckId, player2Id);
+    const deck1 = typeof player1Deck === 'string' ? buildDeck(player1Deck, player1Id) : buildDeckFromCustom(player1Deck, player1Id);
+    const deck2 = typeof player2Deck === 'string' ? buildDeck(player2Deck, player2Id) : buildDeckFromCustom(player2Deck, player2Id);
+    const deck1Id: DeckId | 'custom' = typeof player1Deck === 'string' ? player1Deck : 'custom';
+    const deck2Id: DeckId | 'custom' = typeof player2Deck === 'string' ? player2Deck : 'custom';
 
     // First player will be determined by RPS — use player1 as temporary placeholder
     const firstPlayerId = player1Id;
@@ -66,8 +69,8 @@ export class GameEngine {
     }
 
     // Create player states
-    const player1State = createInitialPlayerState(player1Id, player1Name, player1DeckId, deck1);
-    const player2State = createInitialPlayerState(player2Id, player2Name, player2DeckId, deck2);
+    const player1State = createInitialPlayerState(player1Id, player1Name, deck1Id, deck1);
+    const player2State = createInitialPlayerState(player2Id, player2Name, deck2Id, deck2);
 
     this.state = {
       phase: 'setup-rps',

@@ -16,7 +16,6 @@ export const DropZone: React.FC<DropZoneProps> = ({ cards, label, isOpponent = f
 
   return (
     <div className="drop-zone" onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
-      <div className="drop-zone__label">{label}</div>
       <div className="drop-zone__pile">
         {topCard ? (
           <div className={`drop-zone__top-card ${isOpponent ? 'drop-zone__top-card--opponent' : ''}`}>
@@ -31,7 +30,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ cards, label, isOpponent = f
           </div>
         ) : (
           <div className="drop-zone__empty">
-            <span className="drop-zone__empty-text">0</span>
+            <span className="drop-zone__empty-text">{label}</span>
           </div>
         )}
       </div>

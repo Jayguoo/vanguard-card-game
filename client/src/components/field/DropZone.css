@@ -66,7 +66,10 @@
 }
 
 .drop-zone__empty-text {
-  color: rgba(255, 255, 255, 0.1);
-  font-size: 12px;
+  color: rgba(255, 255, 255, 0.15);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
   user-select: none;
 }

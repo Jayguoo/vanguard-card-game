@@ -17,33 +17,44 @@
 
 .hand-area__card-wrapper {
   position: relative;
-  transition: transform 0.2s ease, z-index 0s;
+  transition: transform 0.2s ease, margin 0.2s ease, z-index 0s;
   transform-origin: bottom center;
   flex-shrink: 0;
-  margin: 0 -12px;
+  margin: 0 -4px;
 }
 
 .hand-area__card-wrapper:hover {
   z-index: 100 !important;
   filter: brightness(1.1);
+  transform: translateY(-12px) scale(1.05);
+  margin: 0 20px;
 }
 
 .hand-area__card-wrapper--selected {
   z-index: 99 !important;
 }
 
-/* New card entering hand animation */
+/* New card entering hand animation — card arrives from above with glow */
 .hand-area__card-wrapper--entering {
-  animation: card-enter-hand 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation: card-enter-hand 0.45s cubic-bezier(0.22, 0.68, 0.35, 1.1) both;
+  animation-delay: 0.3s; /* Delay to let the flying card animation finish first */
 }
 
 @keyframes card-enter-hand {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(-40px) scale(0.8);
+    transform: translateY(-60px) scale(0.7);
+    filter: brightness(1.8) drop-shadow(0 0 8px rgba(0, 180, 255, 0.6));
   }
-  to {
+  60% {
     opacity: 1;
+    transform: translateY(4px) scale(1.05);
+    filter: brightness(1.2) drop-shadow(0 0 4px rgba(0, 180, 255, 0.3));
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: brightness(1) drop-shadow(0 0 0 transparent);
   }
 }
 
@@ -56,4 +67,13 @@
   border-radius: 8px;
   padding: 1px 10px;
   user-select: none;
+}
+
+/* Draggable hand cards */
+.hand-area__card-wrapper--draggable {
+  cursor: grab;
+}
+
+.hand-area__card-wrapper--draggable:active {
+  cursor: grabbing;
 }

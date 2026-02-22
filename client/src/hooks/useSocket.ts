@@ -4,11 +4,17 @@ import {
   ClientToServerEvents,
   ServerToClientEvents,
   PublicGameRoom,
+  PublicRoomListItem,
   PublicVanguardGameState,
   RoomResponse,
+  RoomVisibility,
   DeckId,
+  CustomDeckComposition,
   GameAction,
   ActionResult,
+  AuthResponse,
+  AuthUser,
+  FriendInfo,
 } from '../shared/types';
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -21,21 +27,34 @@ export interface AppState {
   myId: string | null;
   isConnected: boolean;
   error: string | null;
+  publicRooms: PublicRoomListItem[];
+  latencyMs: number | null;
 }
 
-export function useSocket() {
+export function useSocket(
+  token: string | null,
+  onAuthVerified?: (user: AuthUser) => void,
+  onAuthExpired?: () => void,
+) {
   const socketRef = useRef<TypedSocket | null>(null);
+  const onAuthVerifiedRef = useRef(onAuthVerified);
+  const onAuthExpiredRef = useRef(onAuthExpired);
+  onAuthVerifiedRef.current = onAuthVerified;
+  onAuthExpiredRef.current = onAuthExpired;
   const [appState, setAppState] = useState<AppState>({
     room: null,
     gameState: null,
     myId: null,
     isConnected: false,
     error: null,
+    publicRooms: [],
+    latencyMs: null,
   });
 
   useEffect(() => {
     const socket: TypedSocket = io(SERVER_URL, {
       transports: ['websocket', 'polling'],
+      auth: token ? { token } : undefined,
     });
 
     socketRef.current = socket;
@@ -46,7 +65,22 @@ export function useSocket() {
         isConnected: true,
         myId: socket.id || null,
       }));
+
+      // Initial latency measurement
+      const start = performance.now();
+      socket.emit('latency:ping', Date.now(), () => {
+        setAppState(prev => ({ ...prev, latencyMs: Math.round(performance.now() - start) }));
+      });
     });
+
+    // Recurring ping every 5 seconds
+    const pingInterval = setInterval(() => {
+      if (!socket.connected) return;
+      const start = performance.now();
+      socket.emit('latency:ping', Date.now(), () => {
+        setAppState(prev => ({ ...prev, latencyMs: Math.round(performance.now() - start) }));
+      });
+    }, 5000);
 
     socket.on('disconnect', () => {
       setAppState(prev => ({ ...prev, isConnected: false }));
@@ -63,6 +97,10 @@ export function useSocket() {
 
     socket.on('room:playerLeft', (playerId) => {
       console.log(`Player ${playerId} left the room`);
+    });
+
+    socket.on('room:listUpdate', (rooms) => {
+      setAppState(prev => ({ ...prev, publicRooms: rooms }));
     });
 
     // Deck selection events
@@ -83,6 +121,20 @@ export function useSocket() {
       setAppState(prev => ({ ...prev, gameState: state }));
     });
 
+    // Friends status updates (handled by FriendsPanel via callback)
+    socket.on('friends:statusUpdate', () => {
+      // No-op here - FriendsPanel will refetch its own list
+    });
+
+    // Auth session verification
+    socket.on('auth:verified', (user) => {
+      onAuthVerifiedRef.current?.(user);
+    });
+
+    socket.on('auth:expired', () => {
+      onAuthExpiredRef.current?.();
+    });
+
     // Errors
     socket.on('error', (message) => {
       console.error('Server error:', message);
@@ -92,17 +144,17 @@ export function useSocket() {
       }, 3000);
     });
 
-    return () => { socket.disconnect(); };
-  }, []);
+    return () => { clearInterval(pingInterval); socket.disconnect(); };
+  }, [token]);
 
   // Room actions
-  const createRoom = useCallback((playerName: string): Promise<RoomResponse> => {
+  const createRoom = useCallback((playerName: string, options: { visibility: RoomVisibility; password?: string }): Promise<RoomResponse> => {
     return new Promise(resolve => {
       if (!socketRef.current) {
         resolve({ success: false, error: 'Not connected' });
         return;
       }
-      socketRef.current.emit('room:create', playerName, response => {
+      socketRef.current.emit('room:create', playerName, options, response => {
         if (response.success && response.room) {
           setAppState(prev => ({
             ...prev,
@@ -115,13 +167,13 @@ export function useSocket() {
     });
   }, []);
 
-  const joinRoom = useCallback((roomId: string, playerName: string): Promise<RoomResponse> => {
+  const joinRoom = useCallback((roomId: string, playerName: string, password: string | null): Promise<RoomResponse> => {
     return new Promise(resolve => {
       if (!socketRef.current) {
         resolve({ success: false, error: 'Not connected' });
         return;
       }
-      socketRef.current.emit('room:join', roomId, playerName, response => {
+      socketRef.current.emit('room:join', roomId, playerName, password, response => {
         if (response.success && response.room) {
           setAppState(prev => ({
             ...prev,
@@ -131,6 +183,13 @@ export function useSocket() {
         }
         resolve(response);
       });
+    });
+  }, []);
+
+  const fetchRoomList = useCallback(() => {
+    if (!socketRef.current) return;
+    socketRef.current.emit('room:list', (rooms) => {
+      setAppState(prev => ({ ...prev, publicRooms: rooms }));
     });
   }, []);
 
@@ -146,6 +205,16 @@ export function useSocket() {
   // Deck selection
   const selectDeck = useCallback((deckId: DeckId) => {
     socketRef.current?.emit('deck:select', deckId);
+  }, []);
+
+  const submitCustomDeck = useCallback((deck: CustomDeckComposition): Promise<{ success: boolean; error?: string }> => {
+    return new Promise(resolve => {
+      if (!socketRef.current) {
+        resolve({ success: false, error: 'Not connected' });
+        return;
+      }
+      socketRef.current.emit('deck:submitCustom', deck, resolve);
+    });
   }, []);
 
   const readyUp = useCallback(() => {
@@ -170,16 +239,72 @@ export function useSocket() {
     });
   }, []);
 
+  // Auth actions
+  const registerAccount = useCallback((username: string, password: string, fighterName: string): Promise<AuthResponse> => {
+    return new Promise(resolve => {
+      if (!socketRef.current) {
+        resolve({ success: false, error: 'Not connected' });
+        return;
+      }
+      socketRef.current.emit('auth:register', username, password, fighterName, resolve);
+    });
+  }, []);
+
+  const loginAccount = useCallback((username: string, password: string): Promise<AuthResponse> => {
+    return new Promise(resolve => {
+      if (!socketRef.current) {
+        resolve({ success: false, error: 'Not connected' });
+        return;
+      }
+      socketRef.current.emit('auth:login', username, password, resolve);
+    });
+  }, []);
+
+  // Friends actions
+  const listFriends = useCallback((): Promise<FriendInfo[]> => {
+    return new Promise(resolve => {
+      if (!socketRef.current) { resolve([]); return; }
+      socketRef.current.emit('friends:list', resolve);
+    });
+  }, []);
+
+  const addFriend = useCallback((username: string): Promise<{ success: boolean; error?: string }> => {
+    return new Promise(resolve => {
+      if (!socketRef.current) {
+        resolve({ success: false, error: 'Not connected' });
+        return;
+      }
+      socketRef.current.emit('friends:add', username, resolve);
+    });
+  }, []);
+
+  const removeFriend = useCallback((friendUserId: string): Promise<{ success: boolean; error?: string }> => {
+    return new Promise(resolve => {
+      if (!socketRef.current) {
+        resolve({ success: false, error: 'Not connected' });
+        return;
+      }
+      socketRef.current.emit('friends:remove', friendUserId, resolve);
+    });
+  }, []);
+
   return {
     appState,
     actions: {
       createRoom,
       joinRoom,
       leaveRoom,
+      fetchRoomList,
       selectDeck,
+      submitCustomDeck,
       readyUp,
       startGame,
       sendAction,
+      registerAccount,
+      loginAccount,
+      listFriends,
+      addFriend,
+      removeFriend,
     },
   };
 }

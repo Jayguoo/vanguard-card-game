@@ -7,8 +7,11 @@ import {
   ServerToClientEvents,
   RoomResponse,
   DeckId,
+  CustomDeckComposition,
   GameAction,
   ActionResult,
+  AuthResponse,
+  FriendInfo,
 } from '../shared/types';
 import {
   createRoom,
@@ -18,11 +21,31 @@ import {
   getRoomByPlayerId,
   getPlayer,
   toPublicRoom,
+  getPublicRoomList,
   setPlayerDeck,
+  setPlayerCustomDeck,
   setPlayerReady,
   areAllPlayersReady,
 } from './roomManager';
+import { validateCustomDeck } from './game/deckBuilder';
 import { GameEngine } from './game/GameEngine';
+import {
+  loadAccounts,
+  register,
+  login,
+  verifyToken,
+  getUser,
+  toAuthUser,
+  updateFighterName,
+  addFriend,
+  removeFriend,
+  getFriendsList,
+  setOnline,
+  setOffline,
+  getSocketIdsForUser,
+} from './accountManager';
+import { RateLimiter } from './rateLimiter';
+import { validateDeckShape, sanitizePlayerName } from './inputValidation';
 
 const app = express();
 const httpServer = createServer(app);
@@ -50,6 +73,48 @@ app.get('/health', (_req, res) => {
 // Store game engines per room
 const gameEngines = new Map<string, GameEngine>();
 
+// Rate limiter
+const rateLimiter = new RateLimiter();
+rateLimiter.addRule('game:action', 30, 1000);
+rateLimiter.addRule('room:create', 3, 60000);
+rateLimiter.addRule('room:join', 5, 60000);
+rateLimiter.addRule('room:list', 10, 10000);
+rateLimiter.addRule('auth:register', 3, 60000);
+rateLimiter.addRule('auth:login', 5, 60000);
+rateLimiter.addRule('friends:add', 10, 60000);
+rateLimiter.addRule('deck:submitCustom', 5, 10000);
+rateLimiter.addRule('latency:ping', 5, 1000);
+setInterval(() => rateLimiter.cleanup(), 5 * 60 * 1000);
+
+// Load accounts from disk
+loadAccounts();
+
+// Optional auth middleware — doesn't block unauthenticated connections
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token as string | undefined;
+  if (token) {
+    const payload = verifyToken(token);
+    if (payload) {
+      socket.data.userId = payload.userId;
+    }
+  }
+  next();
+});
+
+// Helper: notify all of a user's friends about their online status change
+function notifyFriendsOfStatus(userId: string, isOnline: boolean): void {
+  const user = getUser(userId);
+  if (!user) return;
+  for (const friendId of user.friends) {
+    const friendSockets = getSocketIdsForUser(friendId);
+    if (friendSockets) {
+      for (const sid of friendSockets) {
+        io.to(sid).emit('friends:statusUpdate', userId, isOnline);
+      }
+    }
+  }
+}
+
 // ============================================
 // SOCKET.IO EVENT HANDLERS
 // ============================================
@@ -57,13 +122,38 @@ const gameEngines = new Map<string, GameEngine>();
 io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
   console.log(`Player connected: ${socket.id}`);
 
+  // If authenticated via token, mark online and confirm to client
+  const hadToken = !!socket.handshake.auth?.token;
+  if (socket.data.userId) {
+    const user = getUser(socket.data.userId);
+    if (user) {
+      setOnline(socket.data.userId, socket.id);
+      notifyFriendsOfStatus(socket.data.userId, true);
+      socket.emit('auth:verified', toAuthUser(user));
+    } else {
+      // User was deleted but token still valid
+      socket.data.userId = undefined;
+      if (hadToken) socket.emit('auth:expired');
+    }
+  } else if (hadToken) {
+    // Token was provided but invalid/expired
+    socket.emit('auth:expired');
+  }
+
   // ----------------------------------------
   // ROOM MANAGEMENT
   // ----------------------------------------
 
-  socket.on('room:create', (playerName: string, callback: (response: RoomResponse) => void) => {
+  socket.on('room:create', (playerName, options, callback) => {
+    if (!rateLimiter.check(socket.id, 'room:create')) {
+      callback({ success: false, error: 'Too many requests' }); return;
+    }
     try {
-      const room = createRoom(socket.id, playerName);
+      // Use account fighter name if authenticated
+      const uid = socket.data.userId as string | undefined;
+      const accountUser = uid ? getUser(uid) : null;
+      const name = accountUser ? accountUser.fighterName : sanitizePlayerName(playerName);
+      const room = createRoom(socket.id, name, options.visibility, options.password ?? null);
       socket.join(room.id);
 
       callback({
@@ -71,15 +161,26 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
         room: toPublicRoom(room),
         playerId: socket.id,
       });
-      console.log(`Room created: ${room.id} by ${playerName}`);
+
+      // Broadcast updated room list so browsers see the new public room
+      io.emit('room:listUpdate', getPublicRoomList());
+
+      console.log(`Room created: ${room.id} by ${playerName} (${options.visibility})`);
     } catch (error) {
       callback({ success: false, error: 'Failed to create room' });
     }
   });
 
-  socket.on('room:join', (roomId: string, playerName: string, callback: (response: RoomResponse) => void) => {
+  socket.on('room:join', (roomId, playerName, password, callback) => {
+    if (!rateLimiter.check(socket.id, 'room:join')) {
+      callback({ success: false, error: 'Too many requests' }); return;
+    }
     try {
-      const result = joinRoom(roomId, socket.id, playerName);
+      // Use account fighter name if authenticated
+      const uid = socket.data.userId as string | undefined;
+      const accountUser = uid ? getUser(uid) : null;
+      const name = accountUser ? accountUser.fighterName : sanitizePlayerName(playerName);
+      const result = joinRoom(roomId, socket.id, name, password);
 
       if ('error' in result) {
         callback({ success: false, error: result.error });
@@ -94,6 +195,7 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
         id: player.id,
         name: player.name,
         deckId: null,
+        customDeck: null,
         isHost: false,
         isConnected: true,
         isReady: false,
@@ -101,6 +203,9 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
 
       // Send updated room to all
       io.to(room.id).emit('room:update', toPublicRoom(room));
+
+      // Broadcast updated room list (room may now be full)
+      io.emit('room:listUpdate', getPublicRoomList());
 
       callback({
         success: true,
@@ -114,6 +219,73 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
 
   socket.on('room:leave', () => {
     handlePlayerLeave(socket);
+  });
+
+  socket.on('room:list', (callback) => {
+    if (!rateLimiter.check(socket.id, 'room:list')) { callback([]); return; }
+    callback(getPublicRoomList());
+  });
+
+  // ----------------------------------------
+  // AUTH
+  // ----------------------------------------
+
+  socket.on('auth:register', async (username, password, fighterName, callback) => {
+    if (!rateLimiter.check(socket.id, 'auth:register')) {
+      callback({ success: false, error: 'Too many requests' }); return;
+    }
+    const result = await register(username, password, fighterName);
+    if (result.success && result.user) {
+      socket.data.userId = result.user.userId;
+      setOnline(result.user.userId, socket.id);
+      notifyFriendsOfStatus(result.user.userId, true);
+    }
+    callback(result);
+  });
+
+  socket.on('auth:login', async (username, password, callback) => {
+    if (!rateLimiter.check(socket.id, 'auth:login')) {
+      callback({ success: false, error: 'Too many requests' }); return;
+    }
+    const result = await login(username, password);
+    if (result.success && result.user) {
+      socket.data.userId = result.user.userId;
+      setOnline(result.user.userId, socket.id);
+      notifyFriendsOfStatus(result.user.userId, true);
+    }
+    callback(result);
+  });
+
+  socket.on('auth:updateFighterName', (fighterName, callback) => {
+    const uid = socket.data.userId as string | undefined;
+    if (!uid) { callback({ success: false, error: 'Not authenticated' }); return; }
+    const success = updateFighterName(uid, fighterName);
+    callback({ success, error: success ? undefined : 'Failed to update' });
+  });
+
+  // ----------------------------------------
+  // FRIENDS
+  // ----------------------------------------
+
+  socket.on('friends:list', (callback) => {
+    const uid = socket.data.userId as string | undefined;
+    if (!uid) { callback([]); return; }
+    callback(getFriendsList(uid));
+  });
+
+  socket.on('friends:add', (username, callback) => {
+    if (!rateLimiter.check(socket.id, 'friends:add')) {
+      callback({ success: false, error: 'Too many requests' }); return;
+    }
+    const uid = socket.data.userId as string | undefined;
+    if (!uid) { callback({ success: false, error: 'Not authenticated' }); return; }
+    callback(addFriend(uid, username));
+  });
+
+  socket.on('friends:remove', (friendUserId, callback) => {
+    const uid = socket.data.userId as string | undefined;
+    if (!uid) { callback({ success: false, error: 'Not authenticated' }); return; }
+    callback(removeFriend(uid, friendUserId));
   });
 
   // ----------------------------------------
@@ -135,6 +307,40 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
 
     io.to(room.id).emit('deck:playerSelected', socket.id, deckId);
     io.to(room.id).emit('room:update', toPublicRoom(room));
+  });
+
+  socket.on('deck:submitCustom', (deck: CustomDeckComposition, callback: (response: { success: boolean; error?: string }) => void) => {
+    if (!rateLimiter.check(socket.id, 'deck:submitCustom')) {
+      callback({ success: false, error: 'Too many requests' }); return;
+    }
+
+    // Type/shape validation before game rules
+    const shapeError = validateDeckShape(deck);
+    if (shapeError) {
+      callback({ success: false, error: shapeError }); return;
+    }
+
+    const room = getRoomByPlayerId(socket.id);
+    if (!room || room.roomState !== 'deck-select') {
+      callback({ success: false, error: 'Cannot submit deck now' });
+      return;
+    }
+
+    const validationError = validateCustomDeck(deck);
+    if (validationError) {
+      callback({ success: false, error: validationError });
+      return;
+    }
+
+    const success = setPlayerCustomDeck(room, socket.id, deck);
+    if (!success) {
+      callback({ success: false, error: 'Failed to set custom deck' });
+      return;
+    }
+
+    io.to(room.id).emit('deck:playerSelected', socket.id, 'custom');
+    io.to(room.id).emit('room:update', toPublicRoom(room));
+    callback({ success: true });
   });
 
   socket.on('deck:ready', () => {
@@ -191,9 +397,11 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     const p2 = room.players[1];
 
     try {
+      const p1Deck = p1.customDeck ?? p1.deckId!;
+      const p2Deck = p2.customDeck ?? p2.deckId!;
       const engine = new GameEngine(
-        p1.id, p1.name, p1.deckId!,
-        p2.id, p2.name, p2.deckId!,
+        p1.id, p1.name, p1Deck,
+        p2.id, p2.name, p2Deck,
       );
 
       gameEngines.set(room.id, engine);
@@ -217,6 +425,9 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
   // ----------------------------------------
 
   socket.on('game:action', (action: GameAction, callback: (result: ActionResult) => void) => {
+    if (!rateLimiter.check(socket.id, 'game:action')) {
+      callback({ success: false, error: 'Too many requests' }); return;
+    }
     const room = getRoomByPlayerId(socket.id);
     if (!room || room.roomState !== 'playing') {
       callback({ success: false, error: 'Game not in progress' });
@@ -260,11 +471,31 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
   });
 
   // ----------------------------------------
+  // LATENCY PING
+  // ----------------------------------------
+
+  socket.on('latency:ping', (timestamp, callback) => {
+    if (!rateLimiter.check(socket.id, 'latency:ping')) return;
+    callback(timestamp);
+  });
+
+  // ----------------------------------------
   // DISCONNECTION
   // ----------------------------------------
 
   socket.on('disconnect', () => {
     console.log(`Player disconnected: ${socket.id}`);
+    rateLimiter.clearSocket(socket.id);
+
+    // Track offline status for authenticated users
+    const uid = socket.data.userId as string | undefined;
+    if (uid) {
+      const fullyOffline = setOffline(socket.id);
+      if (fullyOffline) {
+        notifyFriendsOfStatus(uid, false);
+      }
+    }
+
     handlePlayerLeave(socket);
   });
 });
@@ -350,9 +581,13 @@ function handlePlayerLeave(socket: Socket): void {
       }
       gameEngines.delete(updatedRoom.id);
     }
+
+    // Broadcast updated room list (room may now be available again)
+    io.emit('room:listUpdate', getPublicRoomList());
   } else if (room) {
     // Room was deleted (empty)
     gameEngines.delete(room.id);
+    io.emit('room:listUpdate', getPublicRoomList());
   }
 }
 

@@ -158,3 +158,63 @@
       0 0 36px rgba(0, 255, 136, 0.25);
   }
 }
+
+/* Drop target - shown when a draggable card is being dragged */
+.field-circle--drop-target .field-circle__empty {
+  border-color: rgba(0, 200, 255, 0.5);
+  border-style: dashed;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(0, 200, 255, 0.1) 0%, transparent 70%);
+  box-shadow:
+    inset 0 0 20px rgba(0, 200, 255, 0.08),
+    0 0 12px rgba(0, 200, 255, 0.2);
+  animation: drop-target-pulse 1.5s ease-in-out infinite;
+}
+
+.field-circle--drop-target .field-circle__label {
+  color: rgba(0, 200, 255, 0.6);
+}
+
+/* When a card already exists on the drop target */
+.field-circle--drop-target .vg-card {
+  outline: 2px dashed rgba(0, 200, 255, 0.4);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Drag-over - card is hovering directly over this circle */
+.field-circle--drag-over .field-circle__empty {
+  border-color: rgba(0, 255, 136, 0.8);
+  border-style: solid;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(0, 255, 136, 0.2) 0%, rgba(0, 255, 136, 0.05) 50%, transparent 70%);
+  box-shadow:
+    inset 0 0 30px rgba(0, 255, 136, 0.15),
+    0 0 20px rgba(0, 255, 136, 0.5),
+    0 0 40px rgba(0, 255, 136, 0.25);
+  transform: scale(1.05);
+  transition: all 0.15s ease;
+}
+
+.field-circle--drag-over .field-circle__label {
+  color: rgba(0, 255, 136, 0.9);
+}
+
+.field-circle--drag-over .vg-card {
+  outline-color: rgba(0, 255, 136, 0.6);
+  outline-style: solid;
+}
+
+@keyframes drop-target-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 20px rgba(0, 200, 255, 0.08),
+      0 0 12px rgba(0, 200, 255, 0.2);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 25px rgba(0, 200, 255, 0.12),
+      0 0 18px rgba(0, 200, 255, 0.35),
+      0 0 30px rgba(0, 200, 255, 0.15);
+  }
+}

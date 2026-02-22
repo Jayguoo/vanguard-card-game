@@ -1,0 +1,73 @@
+/* Draw Animation — floating card from deck to hand */
+
+.draw-animation {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.draw-animation__card {
+  width: 80px;
+  height: 112px;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.6),
+    0 0 12px rgba(0, 180, 255, 0.3);
+  border: 1px solid rgba(0, 180, 255, 0.3);
+}
+
+.draw-animation__card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* My draw: card flies from right side (deck area) down to bottom center (hand area) */
+.draw-animation--my-draw {
+  animation: my-draw-fly 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+@keyframes my-draw-fly {
+  0% {
+    right: 140px;
+    bottom: 260px;
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15) rotate(-5deg);
+  }
+  100% {
+    right: calc(50vw - 40px);
+    bottom: 20px;
+    opacity: 0;
+    transform: scale(0.9) rotate(0deg);
+  }
+}
+
+/* Opponent draw: card flies from left side (opp deck area) up to top center (opp hand area) */
+.draw-animation--opponent-draw {
+  animation: opp-draw-fly 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+@keyframes opp-draw-fly {
+  0% {
+    left: 140px;
+    top: 200px;
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15) rotate(5deg);
+  }
+  100% {
+    left: calc(50vw - 40px);
+    top: 10px;
+    opacity: 0;
+    transform: scale(0.9) rotate(0deg);
+  }
+}

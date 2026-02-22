@@ -14,9 +14,13 @@ interface PlayerFieldProps {
   onCircleClick?: (position: FieldPosition) => void;
   onCardClick?: (position: FieldPosition, card: PublicCardInstance) => void;
   onCardRightClick?: (position: FieldPosition, card: PublicCardInstance, e: React.MouseEvent) => void;
+  onCardHover?: (card: PublicCardInstance | null) => void;
   highlightedPositions?: FieldPosition[];
+  abilityGlowPositions?: FieldPosition[];
   selectedPosition?: FieldPosition | null;
   powerOverrides?: Partial<Record<FieldPosition, number>>;
+  dropTargetPositions?: FieldPosition[];
+  onDrop?: (position: FieldPosition) => void;
 }
 
 const POSITION_LABELS: Record<FieldPosition, string> = {
@@ -34,9 +38,13 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
   onCircleClick,
   onCardClick,
   onCardRightClick,
+  onCardHover,
   highlightedPositions = [],
+  abilityGlowPositions = [],
   selectedPosition = null,
   powerOverrides = {},
+  dropTargetPositions = [],
+  onDrop,
 }) => {
   const getCard = (position: FieldPosition): PublicCardInstance | null => {
     if (position === 'vanguard') {
@@ -47,6 +55,10 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
 
   const isHighlighted = (position: FieldPosition): boolean => {
     return highlightedPositions.includes(position);
+  };
+
+  const hasAbilityGlow = (position: FieldPosition): boolean => {
+    return abilityGlowPositions.includes(position);
   };
 
   const handleCircleClick = (position: FieldPosition) => {
@@ -70,10 +82,14 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
       isOpponent={isOpponent}
       isHighlighted={isHighlighted(position)}
       isSelected={selectedPosition === position}
+      hasAbilityGlow={hasAbilityGlow(position)}
+      isDropTarget={dropTargetPositions.includes(position)}
       powerOverride={powerOverrides[position]}
       onClick={() => handleCircleClick(position)}
       onCardClick={(card) => handleCardClick(position, card)}
       onCardRightClick={onCardRightClick ? (card, e) => onCardRightClick(position, card, e) : undefined}
+      onCardHover={onCardHover}
+      onDrop={onDrop}
     />
   );
 

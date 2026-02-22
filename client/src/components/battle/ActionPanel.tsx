@@ -18,6 +18,11 @@ interface ActionPanelProps {
   onConfirm: () => void;
   onCancel: () => void;
   triggerEffectTarget?: string | null;
+  boostChoicePending?: boolean;
+  boosterName?: string;
+  boosterPower?: number;
+  onAcceptBoost?: () => void;
+  onDeclineBoost?: () => void;
 }
 
 export const ActionPanel: React.FC<ActionPanelProps> = ({
@@ -30,6 +35,11 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
   onConfirm,
   onCancel,
   triggerEffectTarget,
+  boostChoicePending,
+  boosterName,
+  boosterPower,
+  onAcceptBoost,
+  onDeclineBoost,
 }) => {
   const { phase, turnPlayerId } = gameState;
   const isMyTurn = turnPlayerId === myId;
@@ -178,6 +188,51 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
       }
 
       case 'battle-phase':
+        if (isMyTurn && boostChoicePending && boosterName) {
+          return (
+            <div className="action-panel__group">
+              <p className="action-panel__hint action-panel__hint--trigger">
+                Boost with {boosterName}?
+              </p>
+              <p className="action-panel__hint" style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                +{boosterPower ?? 0} Power
+              </p>
+              <button
+                className="action-panel__btn action-panel__btn--primary"
+                onClick={onAcceptBoost}
+              >
+                Boost
+              </button>
+              <button
+                className="action-panel__btn action-panel__btn--secondary"
+                onClick={onDeclineBoost}
+              >
+                No Boost
+              </button>
+            </div>
+          );
+        }
+        if (isMyTurn && selectedPosition && !boostChoicePending) {
+          return (
+            <div className="action-panel__group">
+              <p className="action-panel__hint">
+                Now click an opponent's unit to attack.
+              </p>
+              <button
+                className="action-panel__btn action-panel__btn--accent"
+                onClick={() => onAction({ type: 'endBattle' })}
+              >
+                End Battle
+              </button>
+              <button
+                className="action-panel__btn action-panel__btn--secondary"
+                onClick={() => onAction({ type: 'endTurn' })}
+              >
+                End Turn
+              </button>
+            </div>
+          );
+        }
         return isMyTurn ? (
           <div className="action-panel__group">
             <p className="action-panel__hint">

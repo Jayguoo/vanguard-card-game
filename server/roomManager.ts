@@ -1,20 +1,21 @@
-import { GameRoom, RoomPlayer, PublicGameRoom, DeckId } from '../shared/types';
+import { GameRoom, RoomPlayer, PublicGameRoom, PublicRoomListItem, DeckId, CustomDeckComposition, RoomVisibility } from '../shared/types';
 import { nanoid } from 'nanoid';
 
 const rooms = new Map<string, GameRoom>();
 const playerRooms = new Map<string, string>();
 
 function generateRoomCode(): string {
-  return nanoid(6).toUpperCase();
+  return nanoid(8).toUpperCase();
 }
 
-export function createRoom(hostId: string, hostName: string): GameRoom {
+export function createRoom(hostId: string, hostName: string, visibility: RoomVisibility, password: string | null): GameRoom {
   const roomId = generateRoomCode();
 
   const host: RoomPlayer = {
     id: hostId,
     name: hostName,
     deckId: null,
+    customDeck: null,
     isHost: true,
     isConnected: true,
     isReady: false,
@@ -25,12 +26,14 @@ export function createRoom(hostId: string, hostName: string): GameRoom {
     players: [host],
     roomState: 'waiting',
     maxPlayers: 2,
+    visibility,
+    password: visibility === 'private' ? password : null,
   };
 
   rooms.set(roomId, room);
   playerRooms.set(hostId, roomId);
 
-  console.log(`Room ${roomId} created by ${hostName}`);
+  console.log(`Room ${roomId} created by ${hostName} (${visibility})`);
   return room;
 }
 
@@ -38,11 +41,16 @@ export function joinRoom(
   roomId: string,
   playerId: string,
   playerName: string,
+  password: string | null,
 ): { room: GameRoom; player: RoomPlayer } | { error: string } {
   const room = rooms.get(roomId.toUpperCase());
   if (!room) return { error: 'Room not found' };
   if (room.roomState !== 'waiting') return { error: 'Game already in progress' };
   if (room.players.length >= room.maxPlayers) return { error: 'Room is full' };
+
+  if (room.password && room.password !== password) {
+    return { error: 'Incorrect password' };
+  }
 
   if (room.players.some((p: RoomPlayer) => p.name.toLowerCase() === playerName.toLowerCase())) {
     return { error: 'Name already taken in this room' };
@@ -52,6 +60,7 @@ export function joinRoom(
     id: playerId,
     name: playerName,
     deckId: null,
+    customDeck: null,
     isHost: false,
     isConnected: true,
     isReady: false,
@@ -124,19 +133,29 @@ export function setPlayerDeck(room: GameRoom, playerId: string, deckId: DeckId):
   if (!player) return false;
 
   player.deckId = deckId;
+  player.customDeck = null;
+  return true;
+}
+
+export function setPlayerCustomDeck(room: GameRoom, playerId: string, deck: CustomDeckComposition): boolean {
+  const player = room.players.find((p: RoomPlayer) => p.id === playerId);
+  if (!player) return false;
+
+  player.customDeck = deck;
+  player.deckId = null;
   return true;
 }
 
 export function setPlayerReady(room: GameRoom, playerId: string): boolean {
   const player = room.players.find((p: RoomPlayer) => p.id === playerId);
-  if (!player || !player.deckId) return false;
+  if (!player || (!player.deckId && !player.customDeck)) return false;
   player.isReady = true;
   return true;
 }
 
 export function areAllPlayersReady(room: GameRoom): boolean {
   return room.players.length === 2 &&
-    room.players.every((p: RoomPlayer) => p.isReady && p.deckId !== null);
+    room.players.every((p: RoomPlayer) => p.isReady && (p.deckId !== null || p.customDeck !== null));
 }
 
 export function setPlayerConnected(playerId: string, connected: boolean): void {
@@ -151,8 +170,25 @@ export function setPlayerConnected(playerId: string, connected: boolean): void {
 export function toPublicRoom(room: GameRoom): PublicGameRoom {
   return {
     id: room.id,
-    players: room.players,
+    players: room.players.map(p => ({ ...p, customDeck: p.customDeck ? { name: p.customDeck.name, starterVanguardId: p.customDeck.starterVanguardId, cards: [] } : null })),
     roomState: room.roomState,
     maxPlayers: room.maxPlayers,
+    visibility: room.visibility,
+    hasPassword: !!room.password,
   };
+}
+
+export function getPublicRoomList(): PublicRoomListItem[] {
+  const list: PublicRoomListItem[] = [];
+  for (const room of rooms.values()) {
+    if (room.visibility === 'public' && room.roomState === 'waiting' && room.players.length < room.maxPlayers) {
+      list.push({
+        id: room.id,
+        hostName: room.players.find(p => p.isHost)?.name ?? 'Unknown',
+        playerCount: room.players.length,
+        maxPlayers: room.maxPlayers,
+      });
+    }
+  }
+  return list;
 }

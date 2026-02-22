@@ -1126,3 +1126,61 @@ export function getACTAbilities(cardId: string): AbilityDef[] {
 export function getCONTAbilities(cardId: string): AbilityDef[] {
   return (ABILITY_DATABASE[cardId] ?? []).filter(a => a.timing === 'CONT');
 }
+
+/**
+ * Check if a player can pay an ability's cost given current game state.
+ * Used client-side to hide skills that can't be activated.
+ */
+export function canPayAbilityCost(
+  cost: AbilityCost | undefined,
+  faceUpDamage: number,
+  soulCount: number,
+  handSize: number,
+  unitIsRested: boolean,
+): boolean {
+  if (!cost) return true;
+
+  switch (cost.type) {
+    case 'counterBlast':
+      return faceUpDamage >= cost.amount;
+    case 'soulBlast':
+      return soulCount >= cost.amount;
+    case 'discardFromHand':
+      return handSize >= cost.amount;
+    case 'restSelf':
+      return !unitIsRested;
+    case 'putSelfToSoul':
+      return true; // always payable if card is on field
+    case 'compound':
+      // Check all sub-costs, but accumulate consumed resources
+      let cbLeft = faceUpDamage;
+      let sbLeft = soulCount;
+      let handLeft = handSize;
+      let canRest = !unitIsRested;
+      for (const sub of cost.costs) {
+        switch (sub.type) {
+          case 'counterBlast':
+            if (cbLeft < sub.amount) return false;
+            cbLeft -= sub.amount;
+            break;
+          case 'soulBlast':
+            if (sbLeft < sub.amount) return false;
+            sbLeft -= sub.amount;
+            break;
+          case 'discardFromHand':
+            if (handLeft < sub.amount) return false;
+            handLeft -= sub.amount;
+            break;
+          case 'restSelf':
+            if (!canRest) return false;
+            canRest = false;
+            break;
+          case 'putSelfToSoul':
+            break; // always payable
+        }
+      }
+      return true;
+    default:
+      return true;
+  }
+}

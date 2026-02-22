@@ -9,11 +9,15 @@ interface VanguardCardProps {
   rested?: boolean;
   selected?: boolean;
   highlighted?: boolean;
+  abilityGlow?: boolean;
   disabled?: boolean;
   onClick?: () => void;
   onRightClick?: (e: React.MouseEvent) => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   size?: 'tiny' | 'small' | 'medium' | 'large';
   showPowerOverlay?: boolean;
+  showShieldOverlay?: boolean;
   powerOverride?: number;
   className?: string;
 }
@@ -24,11 +28,15 @@ export const VanguardCard: React.FC<VanguardCardProps> = ({
   rested = false,
   selected = false,
   highlighted = false,
+  abilityGlow = false,
   disabled = false,
   onClick,
   onRightClick,
+  onMouseEnter,
+  onMouseLeave,
   size = 'medium',
   showPowerOverlay = true,
+  showShieldOverlay = false,
   powerOverride,
   className = '',
 }) => {
@@ -49,6 +57,7 @@ export const VanguardCard: React.FC<VanguardCardProps> = ({
     isRested ? 'vg-card--rested' : '',
     selected ? 'vg-card--selected' : '',
     highlighted ? 'vg-card--highlighted' : '',
+    abilityGlow ? 'vg-card--ability-glow' : '',
     disabled ? 'vg-card--disabled' : '',
     onClick ? 'vg-card--clickable' : '',
     className,
@@ -59,6 +68,8 @@ export const VanguardCard: React.FC<VanguardCardProps> = ({
       className={classes}
       onClick={disabled ? undefined : onClick}
       onContextMenu={onRightClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {showFaceDown ? (
         <img
@@ -78,6 +89,11 @@ export const VanguardCard: React.FC<VanguardCardProps> = ({
           {showPowerOverlay && (
             <div className={`vg-card__power ${hasPowerBuff ? 'vg-card__power--buffed' : ''}`}>
               {totalPower}
+            </div>
+          )}
+          {showShieldOverlay && def.shield > 0 && (
+            <div className="vg-card__shield">
+              {def.shield}
             </div>
           )}
         </>

@@ -20,7 +20,6 @@ export const DamageZone: React.FC<DamageZoneProps> = ({ cards, label, onClick })
 
   return (
     <div className={classes} onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
-      <div className="damage-zone__label">{label}</div>
       <div className="damage-zone__count-badge">
         <span className="damage-zone__count">{count}</span>
       </div>
@@ -29,7 +28,7 @@ export const DamageZone: React.FC<DamageZoneProps> = ({ cards, label, onClick })
         style={cards.length > 1 ? { height: `${80 + (cards.length - 1) * 25}px` } : undefined}
       >
         {cards.length === 0 ? (
-          <div className="damage-zone__empty">0</div>
+          <div className="damage-zone__empty">{label}</div>
         ) : (
           cards.map((card, index) => (
             <div

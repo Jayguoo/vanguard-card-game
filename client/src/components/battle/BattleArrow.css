@@ -1,9 +1,9 @@
 .battle-arrow__line {
-  animation: battle-arrow-in 0.3s ease-out;
+  animation: battle-arrow-in 0.3s ease-out forwards, battle-arrow-flow 1s linear 0.3s infinite;
 }
 
 .battle-arrow__glow {
-  animation: battle-arrow-in 0.3s ease-out;
+  animation: battle-arrow-in 0.3s ease-out forwards, battle-arrow-pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes battle-arrow-in {
@@ -16,5 +16,29 @@
     opacity: 1;
     stroke-dasharray: 1000;
     stroke-dashoffset: 0;
+  }
+}
+
+/* Flowing dashes along the arrow */
+@keyframes battle-arrow-flow {
+  from {
+    stroke-dasharray: 12 8;
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dasharray: 12 8;
+    stroke-dashoffset: -20;
+  }
+}
+
+/* Pulsing glow behind the arrow */
+@keyframes battle-arrow-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    stroke-width: 8;
+  }
+  50% {
+    opacity: 1;
+    stroke-width: 12;
   }
 }

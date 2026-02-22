@@ -476,7 +476,10 @@ export function processAbilityQueue(state: VanguardGameState): boolean {
   }
 
   // Store the previous phase so we can return to it
-  const previousPhase = state.phase;
+  // If already in ability-pending (chained abilities), preserve the original phase
+  const previousPhase = state.phase === 'ability-pending'
+    ? (state.abilityPending?.previousPhase ?? state.phase)
+    : state.phase;
 
   state.abilityPending = {
     abilityId: ability.abilityId,

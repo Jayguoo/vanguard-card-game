@@ -10,10 +10,14 @@ interface FieldCircleProps {
   isOpponent?: boolean;
   isHighlighted?: boolean;
   isSelected?: boolean;
+  hasAbilityGlow?: boolean;
+  isDropTarget?: boolean;
   powerOverride?: number;
   onClick?: () => void;
   onCardClick?: (card: PublicCardInstance) => void;
   onCardRightClick?: (card: PublicCardInstance, e: React.MouseEvent) => void;
+  onCardHover?: (card: PublicCardInstance | null) => void;
+  onDrop?: (position: FieldPosition) => void;
 }
 
 export const FieldCircle: React.FC<FieldCircleProps> = ({
@@ -23,14 +27,19 @@ export const FieldCircle: React.FC<FieldCircleProps> = ({
   isOpponent = false,
   isHighlighted = false,
   isSelected = false,
+  hasAbilityGlow = false,
+  isDropTarget = false,
   powerOverride,
   onClick,
   onCardClick,
   onCardRightClick,
+  onCardHover,
+  onDrop,
 }) => {
   // Track card entry for animation
   const prevCardIdRef = useRef<string | null>(null);
   const [isCardEntering, setIsCardEntering] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   useEffect(() => {
     const currentId = card?.instanceId || null;
@@ -58,6 +67,25 @@ export const FieldCircle: React.FC<FieldCircleProps> = ({
     }
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!isDropTarget) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (isDropTarget && onDrop) {
+      onDrop(position);
+    }
+  };
+
   const classes = [
     'field-circle',
     `field-circle--${position}`,
@@ -65,6 +93,8 @@ export const FieldCircle: React.FC<FieldCircleProps> = ({
     isSelected ? 'field-circle--selected' : '',
     (onClick || (card && onCardClick)) ? 'field-circle--clickable' : '',
     isCardEntering ? 'field-circle--card-entering' : '',
+    isDropTarget ? 'field-circle--drop-target' : '',
+    isDragOver ? 'field-circle--drag-over' : '',
   ].filter(Boolean).join(' ');
 
   const handleRightClick = (e: React.MouseEvent) => {
@@ -81,6 +111,9 @@ export const FieldCircle: React.FC<FieldCircleProps> = ({
       data-owner={isOpponent ? 'opponent' : 'self'}
       onClick={handleClick}
       onContextMenu={handleRightClick}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       {card ? (
         <VanguardCard
@@ -88,8 +121,11 @@ export const FieldCircle: React.FC<FieldCircleProps> = ({
           size="medium"
           selected={isSelected}
           highlighted={isHighlighted}
+          abilityGlow={hasAbilityGlow}
           showPowerOverlay={true}
           powerOverride={powerOverride}
+          onMouseEnter={onCardHover ? () => onCardHover(card) : undefined}
+          onMouseLeave={onCardHover ? () => onCardHover(null) : undefined}
         />
       ) : (
         <div className="field-circle__empty">

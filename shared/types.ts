@@ -8,7 +8,7 @@
 
 export type Grade = 0 | 1 | 2 | 3;
 
-export type Clan = 'royal-paladin' | 'kagero' | 'nova-grappler' | 'oracle-think-tank';
+export type Clan = 'royal-paladin' | 'kagero' | 'nova-grappler' | 'oracle-think-tank' | 'spike-brothers' | 'tachikaze' | 'nubatama' | 'dark-irregulars' | 'granblue' | 'megacolony' | 'bermuda-triangle' | 'great-nature' | 'pale-moon' | 'murakumo';
 
 export type TriggerType = 'critical' | 'draw' | 'stand' | 'heal';
 
@@ -115,7 +115,7 @@ export interface RearGuardSlots {
 export interface VanguardPlayerState {
   id: string;
   name: string;
-  deckId: DeckId;
+  deckId: DeckId | 'custom';
 
   // Zones (arrays of instanceIds)
   deck: string[];
@@ -304,7 +304,7 @@ export interface PublicCardInstance {
 export interface PublicPlayerState {
   id: string;
   name: string;
-  deckId: DeckId;
+  deckId: DeckId | 'custom';
   deckCount: number;
   handCount: number;
   damageZone: PublicCardInstance[];
@@ -440,16 +440,24 @@ export interface DeckComposition {
   cards: { cardId: string; count: number }[];
 }
 
+export interface CustomDeckComposition {
+  name: string;
+  starterVanguardId: string;
+  cards: { cardId: string; count: number }[];
+}
+
 // ============================================
 // ROOM / LOBBY TYPES
 // ============================================
 
 export type RoomState = 'waiting' | 'deck-select' | 'playing' | 'finished';
+export type RoomVisibility = 'public' | 'private';
 
 export interface RoomPlayer {
   id: string;
   name: string;
   deckId: DeckId | null;
+  customDeck: CustomDeckComposition | null;
   isHost: boolean;
   isConnected: boolean;
   isReady: boolean;
@@ -460,6 +468,8 @@ export interface GameRoom {
   players: RoomPlayer[];
   roomState: RoomState;
   maxPlayers: 2;
+  visibility: RoomVisibility;
+  password: string | null;
 }
 
 export interface PublicGameRoom {
@@ -467,6 +477,40 @@ export interface PublicGameRoom {
   players: RoomPlayer[];
   roomState: RoomState;
   maxPlayers: number;
+  visibility: RoomVisibility;
+  hasPassword: boolean;
+}
+
+export interface PublicRoomListItem {
+  id: string;
+  hostName: string;
+  playerCount: number;
+  maxPlayers: number;
+}
+
+// ============================================
+// AUTH / ACCOUNTS
+// ============================================
+
+export interface AuthUser {
+  userId: string;
+  username: string;
+  fighterName: string;
+  friends: string[];
+}
+
+export interface FriendInfo {
+  userId: string;
+  username: string;
+  fighterName: string;
+  isOnline: boolean;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  token?: string;
+  user?: AuthUser;
+  error?: string;
 }
 
 // ============================================
@@ -481,27 +525,45 @@ export interface RoomResponse {
 }
 
 export interface ClientToServerEvents {
-  'room:create': (playerName: string, callback: (response: RoomResponse) => void) => void;
-  'room:join': (roomId: string, playerName: string, callback: (response: RoomResponse) => void) => void;
+  'room:create': (playerName: string, options: { visibility: RoomVisibility; password?: string }, callback: (response: RoomResponse) => void) => void;
+  'room:join': (roomId: string, playerName: string, password: string | null, callback: (response: RoomResponse) => void) => void;
   'room:leave': () => void;
+  'room:list': (callback: (rooms: PublicRoomListItem[]) => void) => void;
 
   'deck:select': (deckId: DeckId) => void;
+  'deck:submitCustom': (deck: CustomDeckComposition, callback: (response: { success: boolean; error?: string }) => void) => void;
   'deck:ready': () => void;
 
   'game:start': () => void;
   'game:action': (action: GameAction, callback: (result: ActionResult) => void) => void;
+
+  'auth:register': (username: string, password: string, fighterName: string, callback: (response: AuthResponse) => void) => void;
+  'auth:login': (username: string, password: string, callback: (response: AuthResponse) => void) => void;
+  'auth:updateFighterName': (fighterName: string, callback: (response: { success: boolean; error?: string }) => void) => void;
+
+  'friends:list': (callback: (friends: FriendInfo[]) => void) => void;
+  'friends:add': (username: string, callback: (response: { success: boolean; error?: string }) => void) => void;
+  'friends:remove': (friendUserId: string, callback: (response: { success: boolean; error?: string }) => void) => void;
+
+  'latency:ping': (timestamp: number, callback: (timestamp: number) => void) => void;
 }
 
 export interface ServerToClientEvents {
   'room:playerJoined': (player: RoomPlayer) => void;
   'room:playerLeft': (playerId: string) => void;
   'room:update': (room: PublicGameRoom) => void;
+  'room:listUpdate': (rooms: PublicRoomListItem[]) => void;
 
-  'deck:playerSelected': (playerId: string, deckId: DeckId) => void;
+  'deck:playerSelected': (playerId: string, deckId: DeckId | 'custom') => void;
   'deck:playerReady': (playerId: string) => void;
   'deck:allReady': () => void;
 
   'game:stateUpdate': (state: PublicVanguardGameState) => void;
+
+  'friends:statusUpdate': (friendUserId: string, isOnline: boolean) => void;
+
+  'auth:verified': (user: AuthUser) => void;
+  'auth:expired': () => void;
 
   'error': (message: string) => void;
 }
