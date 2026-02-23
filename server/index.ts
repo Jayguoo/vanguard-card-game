@@ -314,7 +314,7 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
 
   socket.on('deck:select', (deckId: DeckId) => {
     const room = getRoomByPlayerId(socket.id);
-    if (!room || room.roomState !== 'deck-select') {
+    if (!room || (room.roomState !== 'deck-select' && room.roomState !== 'waiting')) {
       socket.emit('error', 'Cannot select deck now');
       return;
     }
@@ -341,7 +341,7 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     }
 
     const room = getRoomByPlayerId(socket.id);
-    if (!room || room.roomState !== 'deck-select') {
+    if (!room || (room.roomState !== 'deck-select' && room.roomState !== 'waiting')) {
       callback({ success: false, error: 'Cannot submit deck now' });
       return;
     }
