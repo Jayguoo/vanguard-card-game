@@ -77,14 +77,10 @@ export function canCall(
   // Card grade must be <= VG grade
   if (cardDef.grade > vgGrade) return false;
 
-  // Grade 0 non-trigger can be called to back row only (trigger G0s can't be called normally)
-  // Actually in Vanguard, Grade 0 units generally cannot be called from hand
-  // except through specific card effects. Trigger units definitely can't be normal called.
-  if (cardDef.grade === 0) return false;
+  // Trigger units cannot be normal called from hand
+  if (cardDef.triggerType) return false;
 
-  // Check position validity: Grade 1 can go anywhere, Grade 2 can go anywhere, Grade 3 technically
-  // can only be on VC but CAN be called to RC if grade <= VG grade (which it is for G3 VG)
-  // Actually any grade can go to any RC as long as grade <= VG grade
+  // Any non-trigger unit with grade <= VG grade can be called to any RC
   return true;
 }
 

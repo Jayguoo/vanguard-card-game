@@ -244,7 +244,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
         : 0;
       for (const card of myState.hand) {
         const def = CARD_DATABASE[card.cardId];
-        if (def && def.grade <= vgGrade) {
+        if (def && def.grade <= vgGrade && !def.triggerType) {
           ids.push(card.instanceId);
         }
       }
@@ -465,7 +465,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       const vgGrade = myState.vanguardCircle
         ? CARD_DATABASE[myState.vanguardCircle.cardId]?.grade ?? 0
         : 0;
-      if (def.grade <= vgGrade) {
+      if (def.grade <= vgGrade && !def.triggerType) {
         return [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as FieldPosition[];
       }
     }
@@ -892,7 +892,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       const vgGrade = myState.vanguardCircle
         ? CARD_DATABASE[myState.vanguardCircle.cardId]?.grade ?? 0
         : 0;
-      if (def.grade <= vgGrade) {
+      if (def.grade <= vgGrade && !def.triggerType) {
         await onAction({ type: 'call', cardInstanceId: draggingCardId, position: position as RearGuardPosition });
       }
     }
