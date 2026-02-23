@@ -82,11 +82,11 @@ export function buildDeck(deckId: DeckId, playerId: string): BuiltDeck {
 }
 
 export function validateCustomDeck(deck: CustomDeckComposition): string | null {
-  // Check starter vanguard
+  // Check starter vanguard — any grade 0 non-trigger card is valid
   const starterDef = CARD_DATABASE[deck.starterVanguardId];
   if (!starterDef) return `Unknown starter card: ${deck.starterVanguardId}`;
-  if (!starterDef.isStarterVanguard) return `${starterDef.name} is not a valid starter vanguard`;
   if (starterDef.grade !== 0) return `Starter vanguard must be Grade 0`;
+  if (starterDef.triggerType) return `${starterDef.name} is a trigger unit and cannot be a starter vanguard`;
 
   // Check main deck total
   const total = deck.cards.reduce((sum, e) => sum + e.count, 0);
