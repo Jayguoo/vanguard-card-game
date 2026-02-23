@@ -238,13 +238,13 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
         }
       }
     } else if (phase === 'main-phase' && isMyTurn) {
-      // Highlight cards that can be called (grade 1-3, grade <= VG grade)
+      // Highlight cards that can be called (grade <= VG grade)
       const vgGrade = myState.vanguardCircle
         ? CARD_DATABASE[myState.vanguardCircle.cardId]?.grade ?? 0
         : 0;
       for (const card of myState.hand) {
         const def = CARD_DATABASE[card.cardId];
-        if (def && def.grade > 0 && def.grade <= vgGrade) {
+        if (def && def.grade <= vgGrade) {
           ids.push(card.instanceId);
         }
       }
@@ -465,7 +465,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       const vgGrade = myState.vanguardCircle
         ? CARD_DATABASE[myState.vanguardCircle.cardId]?.grade ?? 0
         : 0;
-      if (def.grade > 0 && def.grade <= vgGrade) {
+      if (def.grade <= vgGrade) {
         return [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as FieldPosition[];
       }
     }
@@ -892,7 +892,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       const vgGrade = myState.vanguardCircle
         ? CARD_DATABASE[myState.vanguardCircle.cardId]?.grade ?? 0
         : 0;
-      if (def.grade > 0 && def.grade <= vgGrade) {
+      if (def.grade <= vgGrade) {
         await onAction({ type: 'call', cardInstanceId: draggingCardId, position: position as RearGuardPosition });
       }
     }

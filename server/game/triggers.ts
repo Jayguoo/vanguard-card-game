@@ -199,8 +199,8 @@ export function assignTriggerEffects(
       addLogEntry(state, playerId, `Assigned Critical +1 and Power +5000 to ${powerTargetName}`, 'trigger');
     }
   } else if (triggerDef.triggerType === 'stand') {
-    // Stand the effect target (should be a resting RG)
-    if (effectCard.isRested && effectCard.zone !== 'vanguard-circle') {
+    // Stand the effect target (any rested unit including vanguard)
+    if (effectCard.isRested) {
       effectCard.isRested = false;
       if (isSplit) {
         addLogEntry(state, playerId, `Stood ${effectTargetName} and assigned Power +5000 to ${powerTargetName}`, 'trigger');
