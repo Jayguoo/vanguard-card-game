@@ -468,7 +468,15 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
 
       case 'ability-pending': {
         const pending = gameState.abilityPending;
-        if (!pending) return null;
+        if (!pending) {
+          return (
+            <div className="action-panel__group">
+              <p className="action-panel__hint action-panel__hint--waiting">
+                Resolving ability...
+              </p>
+            </div>
+          );
+        }
 
         const isMyAbility = pending.playerId === myId;
 

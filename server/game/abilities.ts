@@ -444,7 +444,7 @@ function autoResolveAbility(
 // ============================================
 // Pops next ability from queue, sets abilityPending, changes phase.
 
-export function processAbilityQueue(state: VanguardGameState): boolean {
+export function processAbilityQueue(state: VanguardGameState, savedPreviousPhase?: GamePhase): boolean {
   if (state.abilityQueue.length === 0) return false;
 
   const queued = state.abilityQueue.shift()!;
@@ -476,10 +476,18 @@ export function processAbilityQueue(state: VanguardGameState): boolean {
   }
 
   // Store the previous phase so we can return to it
-  // If already in ability-pending (chained abilities), preserve the original phase
-  const previousPhase = state.phase === 'ability-pending'
-    ? (state.abilityPending?.previousPhase ?? state.phase)
-    : state.phase;
+  // Priority: savedPreviousPhase (passed from finishAbilityPending) > current abilityPending's previousPhase > current phase
+  // Never save 'ability-pending' as the return phase
+  let previousPhase: GamePhase;
+  if (savedPreviousPhase && savedPreviousPhase !== 'ability-pending') {
+    previousPhase = savedPreviousPhase;
+  } else if (state.phase === 'ability-pending' && state.abilityPending?.previousPhase) {
+    previousPhase = state.abilityPending.previousPhase;
+  } else if (state.phase !== 'ability-pending') {
+    previousPhase = state.phase;
+  } else {
+    previousPhase = 'main-phase'; // ultimate fallback
+  }
 
   state.abilityPending = {
     abilityId: ability.abilityId,
@@ -784,17 +792,19 @@ export function resolvePlayerAbilityChoice(
 }
 
 function finishAbilityPending(state: VanguardGameState): void {
+  // Save the original phase BEFORE clearing abilityPending
   const previousPhase = state.abilityPending?.previousPhase;
   state.abilityPending = null;
 
   // Check if there are more abilities in the queue
   if (state.abilityQueue.length > 0) {
-    processAbilityQueue(state);
+    // Pass the saved previousPhase so chained abilities don't lose track
+    processAbilityQueue(state, previousPhase);
     return;
   }
 
   // Return to previous phase
-  if (previousPhase) {
+  if (previousPhase && previousPhase !== 'ability-pending') {
     state.phase = previousPhase;
   }
 }
