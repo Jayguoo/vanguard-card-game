@@ -1152,6 +1152,50 @@ function applyEffect(
       break;
     }
 
+    case 'soulCharge': {
+      const player = state.players[playerId];
+      for (let i = 0; i < effect.amount; i++) {
+        if (player.deck.length === 0) break;
+        const cardId = player.deck.shift()!;
+        const charged = state.allCards[cardId];
+        charged.zone = 'soul';
+        charged.isFaceUp = true;
+        player.soul.push(cardId);
+      }
+      addLog(state, playerId, `Soul Charge ${effect.amount}`, 'ability');
+      break;
+    }
+
+    case 'standAllUnits': {
+      const player = state.players[playerId];
+      // Stand vanguard
+      if (player.vanguardCircle) {
+        const vg = state.allCards[player.vanguardCircle];
+        if (vg.isRested) {
+          vg.isRested = false;
+          const vgDef = getCardDefinition(vg.cardId);
+          addLog(state, playerId, `${vgDef.name} stands!`, 'ability');
+        }
+      }
+      // Stand all rear-guards
+      for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS]) {
+        const unitId = player.rearGuards[pos as RearGuardPosition];
+        if (!unitId) continue;
+        const unit = state.allCards[unitId];
+        if (unit.isRested) {
+          unit.isRested = false;
+          const unitDef = getCardDefinition(unit.cardId);
+          addLog(state, playerId, `${unitDef.name} stands!`, 'ability');
+        }
+      }
+      break;
+    }
+
+    case 'interceptShieldBoost': {
+      // Handled directly in performIntercept — no runtime application needed
+      break;
+    }
+
     // These require targeting — handled via applyTargetedEffect
     case 'retireOpponentRG':
     case 'chooseAllyPowerUp':

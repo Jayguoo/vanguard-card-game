@@ -278,7 +278,7 @@ export function recalculateBattlePowers(state: VanguardGameState): void {
   for (const guardianId of battle.guardians) {
     const guardian = getCard(state, guardianId);
     const guardianDef = getCardDefinition(guardian.cardId);
-    defendPower += guardianDef.shield;
+    defendPower += guardianDef.shield + ((guardian as any)._interceptShieldBonus || 0);
   }
 
   battle.defendPower = defendPower;

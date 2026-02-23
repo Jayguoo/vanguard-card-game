@@ -8,7 +8,9 @@ import {
   BACK_ROW_POSITIONS,
 } from '../../shared/types';
 import { getCardDefinition } from '../../shared/cardDatabase';
+import { getAbilitiesForCard } from '../../shared/abilityDefinitions';
 import { getCard, getUnitAt, getOpponentId } from './validation';
+import { reshuffleDeck } from './deckBuilder';
 import { performTriggerCheck, recalculateBattlePowers, resolveRevealedCard } from './triggers';
 import {
   checkAbilitiesForEvent,
@@ -190,7 +192,33 @@ export function performIntercept(
   player.guardianCircle.push(unitId);
   battle.guardians.push(unitId);
 
-  addLog(state, playerId, `Intercepted with ${def.name} (Shield: ${def.shield})`, 'action');
+  // Check for intercept shield boost abilities (e.g., NGM Prototype)
+  let bonusShield = 0;
+  const abilities = getAbilitiesForCard(card.cardId);
+  for (const ability of abilities) {
+    for (const effect of ability.effects) {
+      if (effect.type === 'interceptShieldBoost') {
+        // Check conditions (e.g., vanguardClan)
+        let conditionsMet = true;
+        for (const cond of ability.conditions) {
+          if (cond.type === 'vanguardClan') {
+            const vgId = player.vanguardCircle;
+            if (!vgId) { conditionsMet = false; break; }
+            const vgCard = getCard(state, vgId);
+            const vgDef = getCardDefinition(vgCard.cardId);
+            if (vgDef.clan !== cond.clan) { conditionsMet = false; break; }
+          }
+        }
+        if (conditionsMet) {
+          bonusShield += effect.amount;
+          (card as any)._interceptShieldBonus = effect.amount;
+        }
+      }
+    }
+  }
+
+  const totalShield = def.shield + bonusShield;
+  addLog(state, playerId, `Intercepted with ${def.name} (Shield: ${totalShield})`, 'action');
 
   recalculateBattlePowers(state);
 }
@@ -506,13 +534,14 @@ export function closeBattle(state: VanguardGameState): void {
       card.turnCriticalModifier = 0;
       card.battlePowerModifier = 0;
       card.battleCriticalModifier = 0;
-      turnPlayer.deck.push(unitId); // bottom of deck
+      turnPlayer.deck.push(unitId);
+      turnPlayer.deck = reshuffleDeck(turnPlayer.deck);
 
       const cardDef = getCardDefinition(card.cardId);
       state.actionLog.push({
         timestamp: Date.now(),
         playerId: turnPlayerId,
-        message: `${cardDef.name} returned to the bottom of the deck`,
+        message: `${cardDef.name} returned to deck (deck shuffled)`,
         type: 'ability',
       });
     }

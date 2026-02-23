@@ -437,6 +437,7 @@ export class GameEngine {
       case 'ride-phase':
         this.state.phase = 'main-phase';
         this.addLog(playerId, 'Main Phase', 'phase');
+        this.fireMainPhaseStartAbilities(playerId);
         return { success: true };
 
       case 'main-phase': {
@@ -542,6 +543,7 @@ export class GameEngine {
       // Auto-advance to main phase after riding
       this.state.phase = 'main-phase';
       this.addLog(playerId, 'Main Phase', 'phase');
+      this.fireMainPhaseStartAbilities(playerId);
     }
 
     return { success: true };
@@ -1168,6 +1170,25 @@ export class GameEngine {
   // =============================================
   // PHASE PROCESSING
   // =============================================
+
+  /**
+   * Fire onMainPhaseStart abilities (e.g., Mr. Invincible SC1 + unflip).
+   * Called when entering main phase from ride phase.
+   */
+  private fireMainPhaseStartAbilities(playerId: string): void {
+    checkAbilitiesForEvent(this.state, {
+      event: 'onMainPhaseStart',
+      playerId,
+    });
+    // If abilities queued, process them (may set phase to 'ability-pending')
+    if (this.state.abilityQueue.length > 0) {
+      processAbilityQueue(this.state);
+      // If pending, set previousPhase so it returns to main-phase after resolution
+      if (this.state.phase === 'ability-pending' && this.state.abilityPending) {
+        this.state.abilityPending.previousPhase = 'main-phase';
+      }
+    }
+  }
 
   private processStandPhase(): void {
     const playerId = this.state.turnPlayerId;

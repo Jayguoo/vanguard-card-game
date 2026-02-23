@@ -31,6 +31,7 @@ export type AbilityTriggerEvent =
   | 'onOpponentRGRetired' // an opponent's rear-guard is retired (during your main phase)
   | 'onRiddenOver'        // another unit rides over this unit (Battleraizer FVG)
   | 'onAttackHits'        // this unit's attack hits any target (VG or RG) — Apollon
+  | 'onMainPhaseStart'    // beginning of main phase (Mr. Invincible)
   | 'mainPhaseACT'        // ACT ability usable during your main phase
   | 'continuous';          // CONT — always-on, recalculated
 
@@ -241,6 +242,20 @@ export interface EffectContinuousPowerUpDuringYourTurn {
   amount: number;
 }
 
+export interface EffectInterceptShieldBoost {
+  type: 'interceptShieldBoost';
+  amount: number;
+}
+
+export interface EffectSoulCharge {
+  type: 'soulCharge';
+  amount: number;
+}
+
+export interface EffectStandAllUnits {
+  type: 'standAllUnits';
+}
+
 export type AbilityEffect =
   | EffectSelfPowerUp
   | EffectSelfCriticalUp
@@ -260,7 +275,10 @@ export type AbilityEffect =
   | EffectDrawThenReturnToDeck
   | EffectEachPlayerDraw
   | EffectReturnAllClanRGsToHand
-  | EffectContinuousPowerUpDuringYourTurn;
+  | EffectContinuousPowerUpDuringYourTurn
+  | EffectInterceptShieldBoost
+  | EffectSoulCharge
+  | EffectStandAllUnits;
 
 // ---- The main AbilityDef structure ----
 
@@ -748,9 +766,43 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
     },
   ],
 
-  // TD03/003 — Mr. Invincible — abilities too complex for current system
-  // (start of main phase SC1 + unflip, and SB8+CB5 on hit to stand all)
-  // Skipped for now — card works as a vanilla 10000 power G3
+  // #21b — Mr. Invincible
+  // [AUTO](VC): At the beginning of your main phase, SC(1) and unflip 1 damage
+  // [AUTO](VC/RC):[SB(8)+CB(5)] When this unit's attack hits, stand all your units
+  'TD03/003': [
+    {
+      abilityId: 'TD03/003-0',
+      timing: 'AUTO',
+      triggerEvent: 'onMainPhaseStart',
+      location: 'VC',
+      optional: false,
+      conditions: [],
+      effects: [
+        { type: 'soulCharge', amount: 1 },
+        { type: 'unflipDamage', amount: 1 },
+      ],
+      description: 'Mr. Invincible: Soul Charge 1 and unflip 1 damage!',
+    },
+    {
+      abilityId: 'TD03/003-1',
+      timing: 'AUTO',
+      triggerEvent: 'onAttackHits',
+      location: 'VCorRC',
+      optional: true,
+      cost: {
+        type: 'compound',
+        costs: [
+          { type: 'soulBlast', amount: 8 },
+          { type: 'counterBlast', amount: 5 },
+        ],
+      },
+      conditions: [],
+      effects: [
+        { type: 'standAllUnits' },
+      ],
+      description: 'Mr. Invincible\'s Megablast! Pay SB(8)+CB(5) to stand all your units?',
+    },
+  ],
 
   // TD03/004 — King of Sword — no ability (vanilla 10k G2)
 
@@ -773,7 +825,25 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
     },
   ],
 
-  // TD03/006 — NGM Prototype — intercept shield boost (not supported yet, skipped)
+  // #22b — NGM Prototype
+  // [AUTO]: When this unit intercepts, if NG vanguard → Shield +5000
+  'TD03/006': [
+    {
+      abilityId: 'TD03/006-0',
+      timing: 'AUTO',
+      triggerEvent: 'onAttack', // placeholder — handled directly in performIntercept
+      location: 'RC',
+      optional: false,
+      conditions: [
+        { type: 'vanguardClan', clan: 'nova-grappler' },
+      ],
+      effects: [
+        { type: 'interceptShieldBoost', amount: 5000 },
+      ],
+      description: 'NGM Prototype intercepts with extra shield! +5000 Shield!',
+    },
+  ],
+
   // TD03/007 — Tough Boy — no ability (vanilla 8k G1)
 
   // #23 — Oasis Girl
@@ -795,13 +865,13 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
   ],
 
   // #24 — Screamin' and Dancin' Announcer, Shout
-  // [ACT](RC):[Rest self & Discard 1] Draw 1
+  // [ACT](VC/RC):[Rest self & Discard 1] Draw 1
   'TD03/009': [
     {
       abilityId: 'TD03/009-0',
       timing: 'ACT',
       triggerEvent: 'mainPhaseACT',
-      location: 'RC',
+      location: 'VCorRC',
       optional: true,
       cost: {
         type: 'compound',
@@ -838,19 +908,20 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
   ],
 
   // #26 — Battering Minotaur
-  // [AUTO]: On attack → self +3000 (battle)
+  // [AUTO](VC/RC):[CB(1)] On attack → self +3000 (battle)
   'TD03/011': [
     {
       abilityId: 'TD03/011-0',
       timing: 'AUTO',
       triggerEvent: 'onAttack',
       location: 'VCorRC',
-      optional: false,
+      optional: true,
+      cost: { type: 'counterBlast', amount: 1 },
       conditions: [],
       effects: [
         { type: 'selfPowerUp', amount: 3000, scope: 'battle' },
       ],
-      description: 'Battering Minotaur charges! +3000 power!',
+      description: 'Battering Minotaur attacks! Pay CB(1) for +3000 power?',
     },
   ],
 
