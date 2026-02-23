@@ -379,6 +379,21 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       }
     }
 
+    // Highlight front-row Grade 2 units that can intercept during guard step
+    if (phase === 'battle-guard-step' && isDefender) {
+      const positions: FieldPosition[] = [];
+      for (const pos of FRONT_ROW_POSITIONS as RearGuardPosition[]) {
+        const card = myState.rearGuards[pos];
+        if (card) {
+          const def = CARD_DATABASE[card.cardId];
+          if (def && def.grade === 2) {
+            positions.push(pos);
+          }
+        }
+      }
+      return positions;
+    }
+
     // Highlight all my units during trigger assignment
     if ((phase === 'battle-drive-trigger-assign' && isMyTurn) ||
         (phase === 'battle-damage-trigger-assign' && isDefender)) {
@@ -1355,6 +1370,14 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
             setPendingBoosterPosition(null);
             setBoostChoicePending(false);
           }}
+          interceptCount={FRONT_ROW_POSITIONS.reduce((count, pos) => {
+            const card = myState.rearGuards[pos as RearGuardPosition];
+            if (card) {
+              const def = CARD_DATABASE[card.cardId];
+              if (def && def.grade === 2) return count + 1;
+            }
+            return count;
+          }, 0)}
         />
       </div>
 

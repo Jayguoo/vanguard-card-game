@@ -23,6 +23,7 @@ interface ActionPanelProps {
   boosterPower?: number;
   onAcceptBoost?: () => void;
   onDeclineBoost?: () => void;
+  interceptCount?: number;
 }
 
 export const ActionPanel: React.FC<ActionPanelProps> = ({
@@ -40,6 +41,7 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
   boosterPower,
   onAcceptBoost,
   onDeclineBoost,
+  interceptCount = 0,
 }) => {
   const { phase, turnPlayerId } = gameState;
   const isMyTurn = turnPlayerId === myId;
@@ -299,8 +301,13 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
         return isDefender ? (
           <div className="action-panel__group">
             <p className="action-panel__hint">
-              Select cards from hand to guard, or let the attack through.
+              Select cards from hand to guard{interceptCount > 0 ? ', or click a front-row Grade 2 to intercept' : ''}.
             </p>
+            {interceptCount > 0 && (
+              <p className="action-panel__hint action-panel__hint--intercept">
+                {interceptCount} unit{interceptCount > 1 ? 's' : ''} can intercept
+              </p>
+            )}
             <button
               className="action-panel__btn action-panel__btn--primary"
               onClick={() => onAction({ type: 'guard:done' })}
