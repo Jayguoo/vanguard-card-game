@@ -836,12 +836,17 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
 
   // Handle intercept from my field during guard step + vanguard soul toggle
   const handleMyCardClick = useCallback(async (position: FieldPosition, card: PublicCardInstance) => {
-    // Clicking vanguard toggles the soul list
+    // Clicking vanguard toggles the soul list (but not during trigger assignment or ability pending)
     if (position === 'vanguard') {
-      if (zonePreview?.zoneKey === 'my-soul') {
-        setZonePreview(null);
-      } else {
-        setZonePreview({ label: 'Soul', zoneKey: 'my-soul' });
+      const isTriggerAssign = (phase === 'battle-drive-trigger-assign' && isMyTurn) ||
+                              (phase === 'battle-damage-trigger-assign' && isDefender);
+      const isAbilityPending = phase === 'ability-pending';
+      if (!isTriggerAssign && !isAbilityPending) {
+        if (zonePreview?.zoneKey === 'my-soul') {
+          setZonePreview(null);
+        } else {
+          setZonePreview({ label: 'Soul', zoneKey: 'my-soul' });
+        }
       }
       return;
     }
