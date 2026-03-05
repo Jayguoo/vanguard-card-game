@@ -9,23 +9,28 @@ import {
   BACK_ROW_POSITIONS,
   BOOST_COLUMN_REVERSE,
   BOOST_COLUMN_MAP,
-} from '../shared/types';
-import { CARD_DATABASE } from '../shared/cardDatabase';
-import { getAbilitiesForCard, getACTAbilities, canPayAbilityCost } from '../shared/abilityDefinitions';
-import { PlayerField } from './field/PlayerField';
-import { DamageZone } from './field/DamageZone';
-import { DropZone } from './field/DropZone';
-import { HandArea } from './cards/HandArea';
-import { VanguardCard, CardBack } from './cards/VanguardCard';
-import { ActionPanel } from './battle/ActionPanel';
-import { TriggerReveal } from './battle/TriggerReveal';
-import { BattleArrow } from './battle/BattleArrow';
-import { RPSOverlay } from './battle/RPSOverlay';
-import { AbilityOverlay } from './battle/AbilityOverlay';
-import { DrawAnimation } from './battle/DrawAnimation';
-import { PhaseBar } from './ui/PhaseBar';
-import { RearGuardMenu, RearGuardMenuOption, getColumnPartner } from './field/RearGuardMenu';
+} from '../../shared/types';
+import { CARD_DATABASE } from '../../shared/cardDatabase';
+import { getAbilitiesForCard, getACTAbilities, canPayAbilityCost } from '../../shared/abilityDefinitions';
+import { PlayerField } from '../field/PlayerField';
+import { DamageZone } from '../field/DamageZone';
+import { DropZone } from '../field/DropZone';
+import { HandArea } from '../cards/HandArea';
+import { VanguardCard, CardBack } from '../cards/VanguardCard';
+import { ActionPanel } from '../battle/ActionPanel';
+import { TriggerReveal } from '../battle/TriggerReveal';
+import { BattleArrow } from '../battle/BattleArrow';
+import { RPSOverlay } from '../battle/RPSOverlay';
+import { AbilityOverlay } from '../battle/AbilityOverlay';
+import { DrawAnimation } from '../battle/DrawAnimation';
+import { PhaseBar } from '../ui/PhaseBar';
+import { RearGuardMenu, RearGuardMenuOption, getColumnPartner } from '../field/RearGuardMenu';
 import './VanguardGame.css';
+
+function isSentinel(cardId: string): boolean {
+  const abilities = getAbilitiesForCard(cardId);
+  return abilities.some(a => a.triggerEvent === 'onPlaceGC');
+}
 
 function formatPositionLabel(pos: FieldPosition): string {
   const labels: Record<FieldPosition, string> = {
@@ -216,9 +221,12 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     if (phase === 'ability-pending' && gameState.abilityPending?.playerId === myId) {
       const pending = gameState.abilityPending;
       if (pending.type === 'select-discard') {
-        return abilityDiscardSelection.length > 0
-          ? abilityDiscardSelection
-          : myState.hand.map(c => c.instanceId); // Highlight all hand cards as selectable
+        if (abilityDiscardSelection.length > 0) return abilityDiscardSelection;
+        // If validDiscards is set (clan-filtered for sentinel), only highlight those
+        const selectableCards = pending.validDiscards
+          ? pending.validDiscards.map(c => c.instanceId)
+          : myState.hand.map(c => c.instanceId);
+        return selectableCards;
       }
       return [];
     }
@@ -244,15 +252,15 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
         : 0;
       for (const card of myState.hand) {
         const def = CARD_DATABASE[card.cardId];
-        if (def && def.grade <= vgGrade && !def.triggerType) {
+        if (def && def.grade <= vgGrade) {
           ids.push(card.instanceId);
         }
       }
     } else if (phase === 'battle-guard-step' && isDefender) {
-      // Highlight cards that can guard (shield > 0)
+      // Highlight cards that can guard (shield > 0 or sentinel)
       for (const card of myState.hand) {
         const def = CARD_DATABASE[card.cardId];
-        if (def && def.shield > 0) {
+        if (def && (def.shield > 0 || isSentinel(card.cardId))) {
           ids.push(card.instanceId);
         }
       }
@@ -480,7 +488,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       const vgGrade = myState.vanguardCircle
         ? CARD_DATABASE[myState.vanguardCircle.cardId]?.grade ?? 0
         : 0;
-      if (def.grade <= vgGrade && !def.triggerType) {
+      if (def.grade <= vgGrade) {
         return [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as FieldPosition[];
       }
     }
@@ -532,10 +540,11 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
 
     if (phase === 'battle-guard-step' && isDefender) {
       const def = CARD_DATABASE[card.cardId];
-      if (def && def.shield > 0) {
+      if (def && (def.shield > 0 || isSentinel(card.cardId))) {
+        const shieldText = def.shield > 0 ? `Shield: ${def.shield}` : 'Perfect Guard';
         setPendingAction({
           action: { type: 'guard:addGuardian', cardInstanceId: card.instanceId },
-          description: `Guard with ${def.name} (Shield: ${def.shield})?`,
+          description: `Guard with ${def.name} (${shieldText})?`,
         });
         scrollTo(actionAreaRef);
       }
@@ -546,6 +555,10 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     if (phase === 'ability-pending' && gameState.abilityPending?.playerId === myId) {
       const pending = gameState.abilityPending;
       if (pending.type === 'select-discard') {
+        // If validDiscards is set (clan-filtered), only allow those cards
+        if (pending.validDiscards && !pending.validDiscards.some(c => c.instanceId === card.instanceId)) {
+          return;
+        }
         // Toggle card selection for discard
         setAbilityDiscardSelection(prev => {
           const newSelection = prev.includes(card.instanceId)
@@ -912,7 +925,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       const vgGrade = myState.vanguardCircle
         ? CARD_DATABASE[myState.vanguardCircle.cardId]?.grade ?? 0
         : 0;
-      if (def.grade <= vgGrade && !def.triggerType) {
+      if (def.grade <= vgGrade) {
         await onAction({ type: 'call', cardInstanceId: draggingCardId, position: position as RearGuardPosition });
       }
     }

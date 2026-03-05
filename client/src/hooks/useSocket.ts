@@ -14,6 +14,7 @@ import {
   ActionResult,
   AuthResponse,
   AuthUser,
+  UserStats,
   FriendInfo,
 } from '../shared/types';
 
@@ -122,11 +123,6 @@ export function useSocket(
     // Game state updates
     socket.on('game:stateUpdate', (state) => {
       setAppState(prev => ({ ...prev, gameState: state }));
-    });
-
-    // Friends status updates (handled by FriendsPanel via callback)
-    socket.on('friends:statusUpdate', () => {
-      // No-op here - FriendsPanel will refetch its own list
     });
 
     // Auth session verification
@@ -263,7 +259,15 @@ export function useSocket(
     });
   }, []);
 
-  // Friends actions
+  // Stats
+  const getStats = useCallback((): Promise<UserStats | null> => {
+    return new Promise(resolve => {
+      if (!socketRef.current) { resolve(null); return; }
+      socketRef.current.emit('stats:get', resolve);
+    });
+  }, []);
+
+  // Friends
   const listFriends = useCallback((): Promise<FriendInfo[]> => {
     return new Promise(resolve => {
       if (!socketRef.current) { resolve([]); return; }
@@ -273,21 +277,23 @@ export function useSocket(
 
   const addFriend = useCallback((username: string): Promise<{ success: boolean; error?: string }> => {
     return new Promise(resolve => {
-      if (!socketRef.current) {
-        resolve({ success: false, error: 'Not connected' });
-        return;
-      }
+      if (!socketRef.current) { resolve({ success: false, error: 'Not connected' }); return; }
       socketRef.current.emit('friends:add', username, resolve);
     });
   }, []);
 
   const removeFriend = useCallback((friendUserId: string): Promise<{ success: boolean; error?: string }> => {
     return new Promise(resolve => {
-      if (!socketRef.current) {
-        resolve({ success: false, error: 'Not connected' });
-        return;
-      }
+      if (!socketRef.current) { resolve({ success: false, error: 'Not connected' }); return; }
       socketRef.current.emit('friends:remove', friendUserId, resolve);
+    });
+  }, []);
+
+  // Account
+  const updateFighterName = useCallback((fighterName: string): Promise<{ success: boolean; error?: string }> => {
+    return new Promise(resolve => {
+      if (!socketRef.current) { resolve({ success: false, error: 'Not connected' }); return; }
+      socketRef.current.emit('auth:updateFighterName', fighterName, resolve);
     });
   }, []);
 
@@ -305,9 +311,11 @@ export function useSocket(
       sendAction,
       registerAccount,
       loginAccount,
+      getStats,
       listFriends,
       addFriend,
       removeFriend,
+      updateFighterName,
     },
   };
 }

@@ -97,6 +97,7 @@ export interface CardInstance {
   battlePowerModifier: number;     // cleared at closeBattle()
   battleCriticalModifier: number;  // cleared at closeBattle()
   continuousPowerModifier: number; // recalculated on demand (e.g. Gancelot)
+  continuousCriticalModifier: number; // recalculated on demand (e.g. Perfect Raizer)
   lostTwinDrive: boolean;          // Dragonic Overlord re-stand effect
 }
 
@@ -192,6 +193,7 @@ export interface BattleState {
   triggerContext: 'drive' | 'damage' | null;
   attackerCritical: number;
   healDamageChoicePending: boolean;
+  nullified: boolean;
 }
 
 // ============================================
@@ -271,6 +273,7 @@ export interface AbilityPendingState {
   costDescription?: string;     // e.g. "Counter Blast (2)"
   previousPhase: GamePhase;     // phase to return to after resolution
   nonDiscardCostsPaid?: boolean; // true if non-discard costs were already paid in confirm step
+  validDiscards?: string[];     // instanceIds of valid cards for select-discard (e.g., clan-filtered for sentinel)
 }
 
 export interface QueuedAbility {
@@ -298,6 +301,7 @@ export interface PublicCardInstance {
   battlePowerModifier: number;
   battleCriticalModifier: number;
   continuousPowerModifier: number;
+  continuousCriticalModifier: number;
   lostTwinDrive: boolean;
 }
 
@@ -352,6 +356,7 @@ export interface PublicBattleState {
   triggerContext: 'drive' | 'damage' | null;
   attackerCritical: number;
   healDamageChoicePending: boolean;
+  nullified: boolean;
 }
 
 export interface PublicAbilityPendingState {
@@ -368,6 +373,7 @@ export interface PublicAbilityPendingState {
   minSelections?: number;
   maxSelections?: number;
   costDescription?: string;
+  validDiscards?: PublicCardInstance[];  // valid cards for clan-filtered discard (sentinel)
 }
 
 export interface PublicVanguardGameState {
@@ -496,7 +502,14 @@ export interface AuthUser {
   userId: string;
   username: string;
   fighterName: string;
-  friends: string[];
+}
+
+export interface UserStats {
+  gamesPlayed: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  currentStreak: number;
 }
 
 export interface FriendInfo {
@@ -541,6 +554,8 @@ export interface ClientToServerEvents {
   'auth:login': (username: string, password: string, callback: (response: AuthResponse) => void) => void;
   'auth:updateFighterName': (fighterName: string, callback: (response: { success: boolean; error?: string }) => void) => void;
 
+  'stats:get': (callback: (stats: UserStats | null) => void) => void;
+
   'friends:list': (callback: (friends: FriendInfo[]) => void) => void;
   'friends:add': (username: string, callback: (response: { success: boolean; error?: string }) => void) => void;
   'friends:remove': (friendUserId: string, callback: (response: { success: boolean; error?: string }) => void) => void;
@@ -560,10 +575,10 @@ export interface ServerToClientEvents {
 
   'game:stateUpdate': (state: PublicVanguardGameState) => void;
 
-  'friends:statusUpdate': (friendUserId: string, isOnline: boolean) => void;
-
   'auth:verified': (user: AuthUser) => void;
   'auth:expired': () => void;
+
+  'friends:statusUpdate': (friendUserId: string, isOnline: boolean) => void;
 
   'error': (message: string) => void;
 }

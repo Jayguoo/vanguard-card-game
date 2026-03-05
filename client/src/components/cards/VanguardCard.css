@@ -5,7 +5,7 @@
   flex-shrink: 0;
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
   user-select: none;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--game-card-border);
 }
 
 .vg-card--tiny { width: 40px; height: 56px; }
@@ -24,6 +24,7 @@
   transform: rotate(90deg);
 }
 
+/* Semantic game state colors — same in both themes */
 .vg-card--selected {
   box-shadow:
     0 0 0 2px #ffd700,
@@ -85,8 +86,8 @@
 
 .vg-card--clickable:hover:not(.vg-card--disabled) {
   transform: translateY(-4px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 8px rgba(0, 180, 255, 0.15);
-  border-color: rgba(0, 180, 255, 0.3);
+  box-shadow: var(--game-card-hover-glow);
+  border-color: var(--game-card-hover-border);
 }
 
 .vg-card--clickable.vg-card--rested:hover:not(.vg-card--disabled) {
@@ -97,14 +98,14 @@
   position: absolute;
   bottom: 2px;
   left: 2px;
-  background: rgba(0, 0, 0, 0.85);
-  color: #ddeeff;
+  background: var(--game-card-power-bg);
+  color: var(--game-card-power-text);
   font-size: 10px;
   font-weight: bold;
   padding: 1px 5px;
   border-radius: 3px;
   line-height: 1.2;
-  border: 1px solid rgba(0, 180, 255, 0.2);
+  border: 1px solid var(--game-card-power-border);
 }
 
 .vg-card__power--buffed {
@@ -136,6 +137,7 @@
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
 }
 
+/* Trigger badges — semantic colors, same in both themes */
 .vg-card__trigger--critical { background: #dd2222; box-shadow: 0 0 6px rgba(255, 50, 50, 0.5); }
 .vg-card__trigger--draw { background: #2266dd; box-shadow: 0 0 6px rgba(50, 100, 255, 0.5); }
 .vg-card__trigger--stand { background: #dd6622; box-shadow: 0 0 6px rgba(255, 120, 50, 0.5); }
@@ -161,13 +163,13 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: rgba(200, 220, 255, 0.9);
+  background: var(--game-card-count-bg);
+  color: var(--game-card-count-text);
   font-size: 16px;
   font-weight: bold;
   padding: 3px 8px;
   border-radius: 4px;
-  border: 1px solid rgba(0, 180, 255, 0.2);
+  border: 1px solid var(--game-card-count-border);
 }
 
 @keyframes pulse-highlight {

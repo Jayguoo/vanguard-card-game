@@ -77,8 +77,9 @@ export function declareAttack(
     damageApplied: 0,
     triggerToAssign: null,
     triggerContext: null,
-    attackerCritical: 1 + attacker.turnCriticalModifier + attacker.battleCriticalModifier,
+    attackerCritical: 1 + attacker.turnCriticalModifier + attacker.battleCriticalModifier + attacker.continuousCriticalModifier,
     healDamageChoicePending: false,
+    nullified: false,
   };
 
   addLog(state, playerId, `${attackerDef.name} attacks ${targetDef.name}!`, 'action');
@@ -301,6 +302,15 @@ export function resolveDamage(state: VanguardGameState): void {
   const opponentId = getOpponentId(state, state.turnPlayerId);
 
   recalculateBattlePowers(state);
+
+  // Check if attack was nullified by Perfect Guard (sentinel)
+  if (battle.nullified) {
+    addLog(state, state.turnPlayerId,
+      'Attack nullified by Perfect Guard!',
+      'action');
+    state.phase = 'battle-close-step';
+    return;
+  }
 
   if (battle.attackPower >= battle.defendPower) {
     // Attack hits!

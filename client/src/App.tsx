@@ -3,12 +3,12 @@ import { useAuth } from './hooks/useAuth';
 import { useSocket } from './hooks/useSocket';
 import { useSavedDecks, SavedDeck } from './hooks/useSavedDecks';
 
-import { AuthScreen } from './components/AuthScreen';
-import { Lobby } from './components/Lobby';
-import { DeckSelect } from './components/DeckSelect';
-import { DeckBuilder } from './components/DeckBuilder';
-import { VanguardGame } from './components/VanguardGame';
-import { PingCounter } from './components/PingCounter';
+import { AuthScreen } from './components/pages/AuthScreen';
+import { Lobby } from './components/pages/Lobby';
+import { DeckSelect } from './components/pages/DeckSelect';
+import { DeckBuilder } from './components/pages/DeckBuilder';
+import { VanguardGame } from './components/pages/VanguardGame';
+import { PingCounter } from './components/ui/PingCounter';
 import './App.css';
 
 function App() {
@@ -57,6 +57,11 @@ function App() {
           onDeleteDeck={deleteDeck}
           authUser={authState.user}
           onLogout={() => { clearAuth(); setIsGuest(false); }}
+          latencyMs={appState.latencyMs}
+          updateFighterName={authState.isLoggedIn ? actions.updateFighterName : null}
+          statsActions={authState.isLoggedIn ? {
+            getStats: actions.getStats,
+          } : null}
           friendActions={authState.isLoggedIn ? {
             listFriends: actions.listFriends,
             addFriend: actions.addFriend,

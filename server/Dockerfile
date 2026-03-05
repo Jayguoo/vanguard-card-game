@@ -26,10 +26,9 @@ RUN npm install
 # Copy server source
 COPY server/tsconfig.json ./
 COPY server/index.ts ./
-COPY server/roomManager.ts ./
-COPY server/accountManager.ts ./
-COPY server/rateLimiter.ts ./
-COPY server/inputValidation.ts ./
+COPY server/auth/ ./auth/
+COPY server/middleware/ ./middleware/
+COPY server/rooms/ ./rooms/
 COPY server/game/ ./game/
 
 # Build TypeScript (rootDir=".." resolves ../shared/ to /app/shared/)

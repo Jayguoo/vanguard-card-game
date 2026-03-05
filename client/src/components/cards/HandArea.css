@@ -34,10 +34,9 @@
   z-index: 99 !important;
 }
 
-/* New card entering hand animation — card arrives from above with glow */
 .hand-area__card-wrapper--entering {
   animation: card-enter-hand 0.45s cubic-bezier(0.22, 0.68, 0.35, 1.1) both;
-  animation-delay: 0.3s; /* Delay to let the flying card animation finish first */
+  animation-delay: 0.3s;
 }
 
 @keyframes card-enter-hand {
@@ -61,19 +60,13 @@
 .hand-area__count {
   font-size: 10px;
   font-weight: 600;
-  color: rgba(0, 200, 255, 0.5);
-  background: rgba(0, 180, 255, 0.06);
-  border: 1px solid rgba(0, 180, 255, 0.1);
+  color: var(--game-accent-dim);
+  background: var(--game-accent-bg-dim);
+  border: 1px solid var(--game-border-lighter);
   border-radius: 8px;
   padding: 1px 10px;
   user-select: none;
 }
 
-/* Draggable hand cards */
-.hand-area__card-wrapper--draggable {
-  cursor: grab;
-}
-
-.hand-area__card-wrapper--draggable:active {
-  cursor: grabbing;
-}
+.hand-area__card-wrapper--draggable { cursor: grab; }
+.hand-area__card-wrapper--draggable:active { cursor: grabbing; }

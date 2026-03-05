@@ -3,7 +3,7 @@ import path from 'path';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
-import { AuthUser, AuthResponse, FriendInfo } from '../shared/types';
+import { AuthUser, AuthResponse, UserStats, FriendInfo } from '../../shared/types';
 
 const DATA_DIR = path.join(__dirname, 'data');
 const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
@@ -23,6 +23,7 @@ interface StoredUser {
   passwordHash: string;
   fighterName: string;
   friends: string[];
+  stats: { gamesPlayed: number; wins: number; losses: number; currentStreak: number };
   createdAt: number;
 }
 
@@ -114,6 +115,7 @@ export async function register(
     passwordHash,
     fighterName: trimName,
     friends: [],
+    stats: { gamesPlayed: 0, wins: 0, losses: 0, currentStreak: 0 },
     createdAt: Date.now(),
   };
 
@@ -162,7 +164,6 @@ export function toAuthUser(user: StoredUser): AuthUser {
     userId: user.userId,
     username: user.username,
     fighterName: user.fighterName,
-    friends: user.friends,
   };
 }
 
@@ -174,6 +175,40 @@ export function updateFighterName(userId: string, fighterName: string): boolean 
   user.fighterName = trimmed;
   saveAccounts();
   return true;
+}
+
+// ============================================
+// STATS
+// ============================================
+
+export function getUserStats(userId: string): UserStats | null {
+  const user = accounts.users[userId];
+  if (!user) return null;
+  const s = user.stats || { gamesPlayed: 0, wins: 0, losses: 0, currentStreak: 0 };
+  return {
+    gamesPlayed: s.gamesPlayed,
+    wins: s.wins,
+    losses: s.losses,
+    winRate: s.gamesPlayed > 0 ? Math.round((s.wins / s.gamesPlayed) * 100) : 0,
+    currentStreak: s.currentStreak,
+  };
+}
+
+export function recordGameResult(userId: string, won: boolean): void {
+  const user = accounts.users[userId];
+  if (!user) return;
+  if (!user.stats) {
+    user.stats = { gamesPlayed: 0, wins: 0, losses: 0, currentStreak: 0 };
+  }
+  user.stats.gamesPlayed++;
+  if (won) {
+    user.stats.wins++;
+    user.stats.currentStreak = user.stats.currentStreak > 0 ? user.stats.currentStreak + 1 : 1;
+  } else {
+    user.stats.losses++;
+    user.stats.currentStreak = user.stats.currentStreak < 0 ? user.stats.currentStreak - 1 : -1;
+  }
+  saveAccounts();
 }
 
 // ============================================
@@ -195,11 +230,13 @@ export function addFriend(
   const friend = accounts.users[friendId];
   if (!friend) return { success: false, error: 'User not found' };
 
+  if (!user.friends) user.friends = [];
+  if (!friend.friends) friend.friends = [];
+
   if (user.friends.includes(friendId)) {
     return { success: false, error: 'Already friends' };
   }
 
-  // Bidirectional add
   user.friends.push(friendId);
   friend.friends.push(userId);
   saveAccounts();
@@ -217,7 +254,9 @@ export function removeFriend(
   const friend = accounts.users[friendUserId];
   if (!friend) return { success: false, error: 'User not found' };
 
-  // Bidirectional remove
+  if (!user.friends) user.friends = [];
+  if (!friend.friends) friend.friends = [];
+
   user.friends = user.friends.filter(id => id !== friendUserId);
   friend.friends = friend.friends.filter(id => id !== userId);
   saveAccounts();
@@ -227,7 +266,7 @@ export function removeFriend(
 
 export function getFriendsList(userId: string): FriendInfo[] {
   const user = accounts.users[userId];
-  if (!user) return [];
+  if (!user || !user.friends) return [];
 
   return user.friends.map(friendId => {
     const friend = accounts.users[friendId];

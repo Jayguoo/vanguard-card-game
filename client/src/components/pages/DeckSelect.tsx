@@ -1,7 +1,7 @@
 import React from 'react';
-import { PublicGameRoom, DeckId, CustomDeckComposition } from '../shared/types';
-import { DECK_COMPOSITIONS, CARD_DATABASE } from '../shared/cardDatabase';
-import { SavedDeck, MAX_CUSTOM_DECKS } from '../hooks/useSavedDecks';
+import { PublicGameRoom, DeckId, CustomDeckComposition } from '../../shared/types';
+import { DECK_COMPOSITIONS, CARD_DATABASE } from '../../shared/cardDatabase';
+import { SavedDeck, MAX_CUSTOM_DECKS } from '../../hooks/useSavedDecks';
 import './DeckSelect.css';
 
 interface DeckSelectProps {

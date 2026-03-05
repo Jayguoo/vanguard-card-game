@@ -7,8 +7,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(140, 60, 200, 0.1);
-  border: 1px solid rgba(140, 60, 200, 0.2);
+  background: var(--game-soul-bg);
+  border: 1px solid var(--game-soul-border);
   border-radius: 12px;
   padding: 3px 10px;
   user-select: none;
@@ -27,13 +27,13 @@
 .soul-viewer__icon {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(160, 80, 220, 0.7);
+  color: var(--game-soul-text);
 }
 
 .soul-viewer__count {
   font-size: 14px;
   font-weight: 700;
-  color: rgba(200, 210, 230, 0.85);
+  color: var(--game-text-secondary);
 }
 
 /* Expanded overlay */
@@ -43,7 +43,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--game-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -51,15 +51,15 @@
 }
 
 .soul-viewer__panel {
-  background: #0c0c18;
-  border: 1px solid rgba(0, 180, 255, 0.15);
+  background: var(--game-panel);
+  border: 1px solid var(--game-border-light);
   border-radius: 8px;
   padding: 16px;
   max-width: 480px;
   max-height: 400px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--game-shadow);
 }
 
 .soul-viewer__header {
@@ -68,20 +68,20 @@
   justify-content: space-between;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(0, 180, 255, 0.08);
+  border-bottom: 1px solid var(--game-border-subtle);
 }
 
 .soul-viewer__title {
   font-size: 14px;
   font-weight: 600;
-  color: rgba(160, 80, 220, 0.8);
+  color: var(--game-soul-text);
 }
 
 .soul-viewer__close {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--game-surface);
+  border: 1px solid var(--game-surface-border);
   border-radius: 4px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--game-text-faint);
   font-size: 11px;
   font-weight: 700;
   padding: 2px 8px;
@@ -90,8 +90,8 @@
 }
 
 .soul-viewer__close:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.8);
+  background: var(--game-surface-hover);
+  color: var(--game-text-secondary);
 }
 
 .soul-viewer__cards {

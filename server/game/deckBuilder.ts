@@ -44,6 +44,7 @@ export function buildDeck(deckId: DeckId, playerId: string): BuiltDeck {
     battlePowerModifier: 0,
     battleCriticalModifier: 0,
     continuousPowerModifier: 0,
+    continuousCriticalModifier: 0,
     lostTwinDrive: false,
   };
   allCards.push(starterVanguard);
@@ -64,6 +65,7 @@ export function buildDeck(deckId: DeckId, playerId: string): BuiltDeck {
         battlePowerModifier: 0,
         battleCriticalModifier: 0,
         continuousPowerModifier: 0,
+        continuousCriticalModifier: 0,
         lostTwinDrive: false,
       };
       mainDeckCards.push(card);
@@ -135,6 +137,7 @@ export function buildDeckFromCustom(deck: CustomDeckComposition, playerId: strin
     battlePowerModifier: 0,
     battleCriticalModifier: 0,
     continuousPowerModifier: 0,
+    continuousCriticalModifier: 0,
     lostTwinDrive: false,
   };
   allCards.push(starterVanguard);
@@ -154,6 +157,7 @@ export function buildDeckFromCustom(deck: CustomDeckComposition, playerId: strin
         battlePowerModifier: 0,
         battleCriticalModifier: 0,
         continuousPowerModifier: 0,
+        continuousCriticalModifier: 0,
         lostTwinDrive: false,
       };
       mainDeckCards.push(card);

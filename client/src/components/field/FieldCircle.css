@@ -25,7 +25,7 @@
 }
 
 .field-circle__label {
-  color: rgba(0, 200, 160, 0.3);
+  color: var(--game-accent-subtle);
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;

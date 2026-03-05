@@ -14,7 +14,7 @@
   box-shadow:
     0 4px 20px rgba(0, 0, 0, 0.6),
     0 0 12px rgba(0, 180, 255, 0.3);
-  border: 1px solid rgba(0, 180, 255, 0.3);
+  border: 1px solid var(--game-border);
 }
 
 .draw-animation__card-image {

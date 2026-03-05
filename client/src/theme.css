@@ -1,0 +1,379 @@
+/* ===== Theme — CSS Custom Properties ===== */
+
+:root {
+  /* Backgrounds */
+  --bg-body: #dde3ed;
+  --bg-gradient: linear-gradient(160deg, #e8ecf2 0%, #d0d8e8 40%, #bcc8dc 100%);
+  --bg-builder-gradient: linear-gradient(160deg, #e0e5ef 0%, #d0d8e8 40%, #c4cedf 100%);
+  --bg-panel: rgba(255, 255, 255, 0.55);
+  --bg-panel-strong: rgba(255, 255, 255, 0.75);
+  --bg-panel-subtle: rgba(255, 255, 255, 0.4);
+  --bg-panel-hover: rgba(255, 255, 255, 0.7);
+  --bg-panel-faint: rgba(255, 255, 255, 0.3);
+  --bg-panel-dim: rgba(255, 255, 255, 0.2);
+  --bg-panel-bright: rgba(255, 255, 255, 0.8);
+  --bg-input: rgba(255, 255, 255, 0.6);
+  --bg-input-half: rgba(255, 255, 255, 0.5);
+
+  /* Text */
+  --text-primary: #2a3a5e;
+  --text-secondary: #4a5a74;
+  --text-tertiary: #6b7c9e;
+  --text-muted: #7888a0;
+  --text-placeholder: #8898b0;
+  --text-faint: #5a6a84;
+
+  /* Borders */
+  --border-default: rgba(180, 195, 220, 0.5);
+  --border-light: rgba(180, 195, 220, 0.3);
+  --border-lighter: rgba(180, 195, 220, 0.2);
+  --border-subtle: rgba(180, 195, 220, 0.4);
+
+  /* Accent */
+  --accent-blue: #0066dd;
+  --accent-blue-dark: #0055cc;
+  --accent-blue-light: #0077ee;
+  --accent-blue-glow: rgba(0, 102, 221, 0.15);
+  --accent-blue-bg: rgba(0, 85, 204, 0.06);
+  --accent-blue-bg-strong: rgba(0, 85, 204, 0.15);
+  --accent-blue-border: rgba(0, 85, 204, 0.2);
+  --accent-blue-border-strong: rgba(0, 85, 204, 0.3);
+  --accent-blue-badge: rgba(0, 85, 204, 0.9);
+  --accent-blue-grade-badge: rgba(42, 58, 94, 0.85);
+
+  /* Status */
+  --color-danger: #cc3333;
+  --color-danger-bg: rgba(220, 40, 40, 0.06);
+  --color-danger-bg-strong: rgba(220, 40, 40, 0.1);
+  --color-danger-border: rgba(220, 40, 40, 0.2);
+  --color-danger-border-strong: rgba(220, 40, 40, 0.25);
+  --color-success: #22aa44;
+  --color-online: #2ea84a;
+  --color-online-glow: rgba(46, 168, 74, 0.4);
+  --color-online-friends: #22cc66;
+
+  /* Shadows */
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-overlay: 0 20px 60px rgba(0, 0, 0, 0.15);
+  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-tab-active: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow-card-frame: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-card-inset: 0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+  --shadow-btn-primary: 0 4px 12px rgba(0, 85, 204, 0.25);
+
+  /* Overlay */
+  --overlay-bg: rgba(0, 0, 0, 0.3);
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(100, 140, 200, 0.3);
+
+  /* Spinner */
+  --spinner-border: rgba(0, 85, 204, 0.15);
+
+  /* ===== Game Screen ===== */
+  --game-bg: #dde3ed;
+  --game-board: linear-gradient(180deg, #e0e5ef 0%, #d5dcea 40%, #d5dcea 60%, #e0e5ef 100%);
+  --game-board-vignette: radial-gradient(ellipse 600px 400px at 50% 50%, rgba(180, 200, 230, 0.4) 0%, transparent 100%);
+  --game-panel: rgba(255, 255, 255, 0.9);
+  --game-panel-alt: rgba(255, 255, 255, 0.85);
+  --game-header: rgba(255, 255, 255, 0.6);
+  --game-header-dim: rgba(255, 255, 255, 0.4);
+  --game-surface: rgba(0, 0, 0, 0.03);
+  --game-surface-border: rgba(0, 0, 0, 0.08);
+  --game-surface-faint: rgba(0, 0, 0, 0.02);
+  --game-surface-hover: rgba(0, 80, 180, 0.06);
+  --game-overlay: rgba(0, 0, 0, 0.4);
+  --game-overlay-heavy: rgba(0, 0, 0, 0.5);
+  --game-middle: rgba(0, 60, 120, 0.06);
+  --game-inset: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+  /* Game text */
+  --game-text: #2a3a5e;
+  --game-text-bright: #1a2a4e;
+  --game-text-name: #0066cc;
+  --game-text-secondary: rgba(42, 58, 94, 0.8);
+  --game-text-dim: rgba(60, 80, 120, 0.7);
+  --game-text-muted: rgba(80, 100, 130, 0.55);
+  --game-text-faint: rgba(80, 100, 130, 0.45);
+  --game-text-empty: rgba(42, 58, 94, 0.2);
+
+  /* Game accent (cyan/blue) */
+  --game-accent: rgba(0, 120, 200, 0.9);
+  --game-accent-mid: rgba(0, 100, 180, 0.7);
+  --game-accent-dim: rgba(0, 100, 180, 0.55);
+  --game-accent-subtle: rgba(0, 100, 180, 0.4);
+  --game-accent-bg: rgba(0, 100, 180, 0.08);
+  --game-accent-bg-dim: rgba(0, 100, 180, 0.04);
+  --game-accent-solid: #5ad8ff;
+
+  /* Game borders */
+  --game-border: rgba(0, 80, 180, 0.2);
+  --game-border-light: rgba(0, 80, 180, 0.12);
+  --game-border-lighter: rgba(0, 80, 180, 0.08);
+  --game-border-subtle: rgba(0, 80, 180, 0.06);
+
+  /* Game shadows */
+  --game-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --game-shadow-glow: 0 0 20px rgba(0, 80, 180, 0.1);
+
+  /* Game scrollbar */
+  --game-scrollbar: rgba(0, 80, 180, 0.15);
+  --game-scrollbar-hover: rgba(0, 80, 180, 0.25);
+
+  /* DeckSelect */
+  --ds-bg: linear-gradient(135deg, #e8ecf2 0%, #dde3ed 40%, #d0d8e8 100%);
+  --ds-panel: rgba(255, 255, 255, 0.6);
+  --ds-card: rgba(255, 255, 255, 0.7);
+  --ds-card-dim: rgba(255, 255, 255, 0.4);
+  --ds-border: rgba(100, 80, 200, 0.15);
+  --ds-text: #2a3a5e;
+  --ds-text-secondary: rgba(42, 58, 94, 0.85);
+  --ds-text-dim: rgba(60, 80, 120, 0.65);
+  --ds-text-muted: rgba(80, 100, 130, 0.6);
+  --ds-btn-bg: rgba(0, 0, 0, 0.05);
+  --ds-btn-text: rgba(42, 58, 94, 0.7);
+  --ds-btn-border: rgba(0, 0, 0, 0.1);
+
+  /* RPS overlay */
+  --rps-backdrop: radial-gradient(ellipse at center, rgba(200, 210, 230, 0.95) 0%, rgba(220, 225, 235, 0.98) 100%);
+  --rps-card: rgba(255, 255, 255, 0.95);
+  --rps-card-border: rgba(100, 120, 200, 0.2);
+  --rps-choice: rgba(255, 255, 255, 0.8);
+  --rps-choice-border: rgba(100, 120, 200, 0.15);
+  --rps-choice-hover: rgba(240, 243, 250, 0.95);
+  --rps-text: rgba(42, 58, 94, 0.8);
+  --rps-text-dim: rgba(80, 100, 140, 0.6);
+
+  /* Soul */
+  --game-soul-bg: rgba(140, 60, 200, 0.08);
+  --game-soul-border: rgba(140, 60, 200, 0.15);
+  --game-soul-text: rgba(140, 60, 200, 0.65);
+
+  /* Card on-card overlays */
+  --game-card-border: rgba(0, 0, 0, 0.1);
+  --game-card-power-bg: rgba(255, 255, 255, 0.9);
+  --game-card-power-text: #2a3a5e;
+  --game-card-power-border: rgba(0, 80, 180, 0.2);
+  --game-card-count-bg: rgba(255, 255, 255, 0.85);
+  --game-card-count-text: rgba(42, 58, 94, 0.9);
+  --game-card-count-border: rgba(0, 80, 180, 0.2);
+  --game-card-hover-glow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 8px rgba(0, 100, 180, 0.15);
+  --game-card-hover-border: rgba(0, 100, 180, 0.3);
+
+  /* Action panel buttons (gold/secondary keep same, bg changes) */
+  --game-btn-secondary: rgba(220, 225, 235, 0.8);
+  --game-btn-secondary-text: rgba(42, 58, 94, 0.8);
+  --game-btn-secondary-border: rgba(0, 80, 180, 0.12);
+  --game-btn-secondary-hover: rgba(230, 235, 245, 0.95);
+
+  /* Guard panel */
+  --game-guard-teal-bg: rgba(0, 200, 180, 0.06);
+  --game-guard-teal-border: rgba(0, 200, 180, 0.12);
+  --game-guard-shield-bg: rgba(0, 200, 180, 0.08);
+  --game-guard-shield-border: rgba(0, 200, 180, 0.15);
+
+  /* Ability overlay */
+  --game-ability-desc-bg: rgba(0, 0, 0, 0.06);
+  --game-ability-decline-bg: rgba(220, 220, 230, 0.8);
+  --game-ability-decline-text: rgba(60, 60, 80, 0.8);
+  --game-ability-decline-border: rgba(100, 100, 120, 0.3);
+
+  /* Game over */
+  --game-over-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 235, 250, 0.95) 100%);
+  --game-over-text: #aaaacc;
+  --game-over-btn: linear-gradient(135deg, #3333aa, #5533cc);
+
+  /* Phase announcement */
+  --game-announce-bg: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.7) 15%, rgba(0, 0, 0, 0.8) 50%, rgba(0, 0, 0, 0.7) 85%, transparent 100%);
+
+  /* GC circle */
+  --game-gc-bg: radial-gradient(circle at center, rgba(180, 200, 230, 0.4) 0%, rgba(200, 215, 235, 0.3) 60%, rgba(210, 220, 235, 0.2) 100%);
+  --game-gc-border: rgba(0, 80, 180, 0.25);
+  --game-gc-shadow: 0 0 15px rgba(0, 80, 180, 0.08), inset 0 0 20px rgba(0, 80, 180, 0.06);
+  --game-gc-inner-border: rgba(0, 80, 180, 0.12);
+}
+
+[data-theme="dark"] {
+  /* Backgrounds */
+  --bg-body: #1a1a2e;
+  --bg-gradient: linear-gradient(160deg, #1a1a2e 0%, #1e1e3a 40%, #222244 100%);
+  --bg-builder-gradient: linear-gradient(160deg, #1a1a2e 0%, #1e1e3a 40%, #222244 100%);
+  --bg-panel: rgba(30, 30, 50, 0.7);
+  --bg-panel-strong: rgba(30, 30, 50, 0.85);
+  --bg-panel-subtle: rgba(40, 40, 65, 0.5);
+  --bg-panel-hover: rgba(50, 50, 75, 0.7);
+  --bg-panel-faint: rgba(40, 40, 65, 0.4);
+  --bg-panel-dim: rgba(30, 30, 50, 0.4);
+  --bg-panel-bright: rgba(60, 60, 85, 0.7);
+  --bg-input: rgba(40, 40, 65, 0.6);
+  --bg-input-half: rgba(35, 35, 55, 0.6);
+
+  /* Text */
+  --text-primary: #e0e4ec;
+  --text-secondary: #9aa4b8;
+  --text-tertiary: #7888a0;
+  --text-muted: #6878a0;
+  --text-placeholder: #5a6880;
+  --text-faint: #8090a8;
+
+  /* Borders */
+  --border-default: rgba(80, 90, 120, 0.4);
+  --border-light: rgba(80, 90, 120, 0.3);
+  --border-lighter: rgba(80, 90, 120, 0.2);
+  --border-subtle: rgba(80, 90, 120, 0.35);
+
+  /* Accent — blue stays, slight glow adjustment */
+  --accent-blue-glow: rgba(0, 102, 221, 0.25);
+  --accent-blue-bg: rgba(0, 85, 204, 0.12);
+  --accent-blue-bg-strong: rgba(0, 85, 204, 0.25);
+  --accent-blue-border: rgba(0, 85, 204, 0.3);
+  --accent-blue-border-strong: rgba(0, 85, 204, 0.4);
+  --accent-blue-badge: rgba(0, 85, 204, 0.95);
+  --accent-blue-grade-badge: rgba(20, 30, 60, 0.9);
+
+  /* Status */
+  --color-danger-bg: rgba(220, 40, 40, 0.12);
+  --color-danger-bg-strong: rgba(220, 40, 40, 0.18);
+  --color-danger-border: rgba(220, 40, 40, 0.25);
+  --color-danger-border-strong: rgba(220, 40, 40, 0.35);
+
+  /* Shadows */
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-overlay: 0 20px 60px rgba(0, 0, 0, 0.4);
+  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-tab-active: 0 1px 4px rgba(0, 0, 0, 0.15);
+  --shadow-card-frame: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-card-inset: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  --shadow-btn-primary: 0 4px 12px rgba(0, 85, 204, 0.4);
+
+  /* Overlay */
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(80, 100, 160, 0.4);
+
+  /* Spinner */
+  --spinner-border: rgba(0, 85, 204, 0.25);
+
+  /* ===== Game Screen ===== */
+  --game-bg: #0a0a0f;
+  --game-board: linear-gradient(180deg, #080810 0%, #0c0c18 40%, #0c0c18 60%, #080810 100%);
+  --game-board-vignette: radial-gradient(ellipse 600px 400px at 50% 50%, rgba(20, 40, 60, 0.4) 0%, transparent 100%);
+  --game-panel: rgba(8, 10, 20, 0.95);
+  --game-panel-alt: rgba(20, 22, 30, 0.96);
+  --game-header: rgba(0, 0, 0, 0.6);
+  --game-header-dim: rgba(0, 0, 0, 0.3);
+  --game-surface: rgba(255, 255, 255, 0.02);
+  --game-surface-border: rgba(255, 255, 255, 0.06);
+  --game-surface-faint: rgba(255, 255, 255, 0.01);
+  --game-surface-hover: rgba(0, 180, 255, 0.08);
+  --game-overlay: rgba(0, 0, 0, 0.8);
+  --game-overlay-heavy: rgba(0, 0, 0, 0.85);
+  --game-middle: rgba(0, 20, 40, 0.3);
+  --game-inset: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+
+  /* Game text */
+  --game-text: #ffffff;
+  --game-text-bright: #ffffff;
+  --game-text-name: #6ec8ff;
+  --game-text-secondary: rgba(200, 210, 230, 0.85);
+  --game-text-dim: rgba(150, 170, 200, 0.7);
+  --game-text-muted: rgba(120, 140, 160, 0.6);
+  --game-text-faint: rgba(200, 200, 220, 0.5);
+  --game-text-empty: rgba(255, 255, 255, 0.15);
+
+  /* Game accent (cyan) */
+  --game-accent: rgba(0, 200, 255, 0.9);
+  --game-accent-mid: rgba(0, 200, 255, 0.6);
+  --game-accent-dim: rgba(0, 200, 255, 0.5);
+  --game-accent-subtle: rgba(0, 200, 255, 0.35);
+  --game-accent-bg: rgba(0, 180, 255, 0.1);
+  --game-accent-bg-dim: rgba(0, 180, 255, 0.06);
+  --game-accent-solid: #5ad8ff;
+
+  /* Game borders */
+  --game-border: rgba(0, 180, 255, 0.25);
+  --game-border-light: rgba(0, 180, 255, 0.15);
+  --game-border-lighter: rgba(0, 180, 255, 0.1);
+  --game-border-subtle: rgba(0, 180, 255, 0.08);
+
+  /* Game shadows */
+  --game-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  --game-shadow-glow: 0 0 20px rgba(0, 120, 255, 0.2);
+
+  /* Game scrollbar */
+  --game-scrollbar: rgba(0, 180, 255, 0.2);
+  --game-scrollbar-hover: rgba(0, 180, 255, 0.35);
+
+  /* DeckSelect */
+  --ds-bg: linear-gradient(135deg, #0a0a1a 0%, #12102e 40%, #1a1040 100%);
+  --ds-panel: rgba(30, 25, 60, 0.6);
+  --ds-card: rgba(20, 16, 45, 0.8);
+  --ds-card-dim: rgba(20, 16, 45, 0.4);
+  --ds-border: rgba(100, 80, 200, 0.2);
+  --ds-text: white;
+  --ds-text-secondary: rgba(220, 220, 240, 0.95);
+  --ds-text-dim: rgba(180, 180, 210, 0.7);
+  --ds-text-muted: rgba(160, 160, 190, 0.6);
+  --ds-btn-bg: rgba(255, 255, 255, 0.08);
+  --ds-btn-text: rgba(200, 200, 230, 0.7);
+  --ds-btn-border: rgba(255, 255, 255, 0.1);
+
+  /* RPS overlay */
+  --rps-backdrop: radial-gradient(ellipse at center, rgba(10, 12, 30, 0.92) 0%, rgba(2, 3, 10, 0.97) 100%);
+  --rps-card: linear-gradient(165deg, rgba(18, 20, 42, 0.95) 0%, rgba(12, 14, 32, 0.98) 100%);
+  --rps-card-border: rgba(100, 120, 255, 0.15);
+  --rps-choice: rgba(20, 24, 50, 0.8);
+  --rps-choice-border: rgba(80, 100, 200, 0.12);
+  --rps-choice-hover: rgba(28, 32, 64, 0.95);
+  --rps-text: rgba(140, 170, 255, 0.8);
+  --rps-text-dim: rgba(160, 175, 210, 0.6);
+
+  /* Soul */
+  --game-soul-bg: rgba(140, 60, 200, 0.1);
+  --game-soul-border: rgba(140, 60, 200, 0.2);
+  --game-soul-text: rgba(160, 80, 220, 0.7);
+
+  /* Card on-card overlays */
+  --game-card-border: rgba(255, 255, 255, 0.08);
+  --game-card-power-bg: rgba(0, 0, 0, 0.85);
+  --game-card-power-text: #ddeeff;
+  --game-card-power-border: rgba(0, 180, 255, 0.2);
+  --game-card-count-bg: rgba(0, 0, 0, 0.8);
+  --game-card-count-text: rgba(200, 220, 255, 0.9);
+  --game-card-count-border: rgba(0, 180, 255, 0.2);
+  --game-card-hover-glow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 8px rgba(0, 180, 255, 0.15);
+  --game-card-hover-border: rgba(0, 180, 255, 0.3);
+
+  /* Action panel buttons */
+  --game-btn-secondary: rgba(40, 45, 60, 0.8);
+  --game-btn-secondary-text: rgba(180, 190, 210, 0.85);
+  --game-btn-secondary-border: rgba(0, 180, 255, 0.12);
+  --game-btn-secondary-hover: rgba(50, 55, 75, 0.9);
+
+  /* Guard panel */
+  --game-guard-teal-bg: rgba(0, 200, 180, 0.04);
+  --game-guard-teal-border: rgba(0, 200, 180, 0.1);
+  --game-guard-shield-bg: rgba(0, 200, 180, 0.08);
+  --game-guard-shield-border: rgba(0, 200, 180, 0.15);
+
+  /* Ability overlay */
+  --game-ability-desc-bg: rgba(0, 0, 0, 0.4);
+  --game-ability-decline-bg: rgba(60, 60, 80, 0.8);
+  --game-ability-decline-text: rgba(200, 200, 220, 0.8);
+  --game-ability-decline-border: rgba(100, 100, 120, 0.5);
+
+  /* Game over */
+  --game-over-bg: linear-gradient(135deg, #0a1020 0%, #1a0a30 100%);
+  --game-over-text: #aaaacc;
+  --game-over-btn: linear-gradient(135deg, #3333aa, #5533cc);
+
+  /* Phase announcement */
+  --game-announce-bg: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.85) 15%, rgba(0, 0, 0, 0.9) 50%, rgba(0, 0, 0, 0.85) 85%, transparent 100%);
+
+  /* GC circle */
+  --game-gc-bg: radial-gradient(circle at center, rgba(10, 20, 40, 0.9) 0%, rgba(5, 15, 30, 0.95) 60%, rgba(0, 10, 25, 1) 100%);
+  --game-gc-border: rgba(0, 180, 255, 0.25);
+  --game-gc-shadow: 0 0 15px rgba(0, 120, 255, 0.1), inset 0 0 20px rgba(0, 80, 160, 0.15);
+  --game-gc-inner-border: rgba(0, 180, 255, 0.12);
+}

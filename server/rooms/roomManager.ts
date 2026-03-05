@@ -1,4 +1,4 @@
-import { GameRoom, RoomPlayer, PublicGameRoom, PublicRoomListItem, DeckId, CustomDeckComposition, RoomVisibility } from '../shared/types';
+import { GameRoom, RoomPlayer, PublicGameRoom, PublicRoomListItem, DeckId, CustomDeckComposition, RoomVisibility } from '../../shared/types';
 import { nanoid } from 'nanoid';
 
 const rooms = new Map<string, GameRoom>();

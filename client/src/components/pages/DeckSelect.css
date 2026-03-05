@@ -1,9 +1,9 @@
 .deck-select {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a1a 0%, #12102e 40%, #1a1040 100%);
+  background: var(--ds-bg);
   display: flex;
   flex-direction: column;
-  color: white;
+  color: var(--ds-text);
 }
 
 /* Header */
@@ -12,14 +12,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(100, 80, 200, 0.2);
+  background: var(--game-header-dim);
+  border-bottom: 1px solid var(--ds-border);
 }
 
 .deck-select__leave-btn {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(200, 200, 230, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--ds-btn-bg);
+  color: var(--ds-btn-text);
+  border: 1px solid var(--ds-btn-border);
   padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
@@ -29,7 +29,7 @@
 }
 
 .deck-select__leave-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--game-surface-hover);
 }
 
 .deck-select__title {
@@ -44,7 +44,7 @@
 
 .deck-select__room-code {
   font-size: 13px;
-  color: rgba(160, 160, 190, 0.6);
+  color: var(--ds-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -76,8 +76,8 @@
   align-items: center;
   gap: 2px;
   padding: 8px 12px;
-  background: rgba(30, 25, 60, 0.6);
-  border: 1px solid rgba(100, 80, 200, 0.2);
+  background: var(--ds-panel);
+  border: 1px solid var(--ds-border);
   border-radius: 8px;
   transition: all 0.3s ease;
 }
@@ -95,12 +95,12 @@
 .deck-select__player-name {
   font-size: 14px;
   font-weight: 600;
-  color: rgba(220, 220, 240, 0.95);
+  color: var(--ds-text-secondary);
 }
 
 .deck-select__player-status {
   font-size: 11px;
-  color: rgba(150, 150, 180, 0.7);
+  color: var(--ds-text-dim);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -119,8 +119,8 @@
 
 .deck-select__deck {
   width: 150px;
-  background: rgba(20, 16, 45, 0.8);
-  border: 2px solid rgba(100, 80, 200, 0.2);
+  background: var(--ds-card);
+  border: 2px solid var(--ds-border);
   border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
@@ -245,7 +245,7 @@
   font-size: 12px;
   font-weight: 700;
   margin-bottom: 2px;
-  color: rgba(230, 230, 250, 0.95);
+  color: var(--ds-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -277,7 +277,7 @@
 
 .deck-select__deck-description {
   font-size: 10px;
-  color: rgba(180, 180, 210, 0.7);
+  color: var(--ds-text-dim);
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -341,7 +341,7 @@
 
 .deck-select__waiting-text {
   font-size: 14px;
-  color: rgba(160, 160, 190, 0.6);
+  color: var(--ds-text-muted);
   font-style: italic;
 }
 
@@ -363,9 +363,9 @@
 
 .deck-select__deck-edit-btn,
 .deck-select__deck-delete-btn {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(200, 200, 230, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--ds-btn-bg);
+  color: var(--ds-btn-text);
+  border: 1px solid var(--ds-btn-border);
   padding: 2px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -387,12 +387,12 @@
 .deck-select__deck--create {
   border-style: dashed;
   border-color: rgba(100, 80, 200, 0.3);
-  background: rgba(20, 16, 45, 0.4);
+  background: var(--ds-card-dim);
 }
 
 .deck-select__deck--create:hover {
   border-color: rgba(160, 120, 255, 0.5);
-  background: rgba(30, 25, 60, 0.6);
+  background: var(--ds-panel);
 }
 
 .deck-select__deck-create-icon {

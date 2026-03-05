@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.75);
+  background: var(--game-overlay);
   backdrop-filter: blur(4px);
   animation: trigger-overlay-in 0.3s ease-out;
   pointer-events: none;
@@ -69,7 +69,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 3px;
-  color: rgba(0, 220, 255, 0.8);
+  color: var(--game-accent);
   animation: context-fade-in 0.3s ease-out 0.2s both;
 }
 
@@ -174,7 +174,7 @@
 .trigger-reveal__name {
   font-size: 20px;
   font-weight: 700;
-  color: white;
+  color: var(--game-text-bright);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   text-align: center;
 }
@@ -218,6 +218,6 @@
 
 .trigger-reveal__no-trigger {
   font-size: 14px;
-  color: rgba(160, 160, 180, 0.7);
+  color: var(--game-text-muted);
   font-style: italic;
 }

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { CustomDeckComposition, CardDefinition, Clan, TriggerType } from '../shared/types';
-import { CARD_DATABASE } from '../shared/cardDatabase';
-import { SavedDeck, MAX_CUSTOM_DECKS } from '../hooks/useSavedDecks';
+import { CustomDeckComposition, CardDefinition, Clan, TriggerType } from '../../shared/types';
+import { CARD_DATABASE } from '../../shared/cardDatabase';
+import { SavedDeck, MAX_CUSTOM_DECKS } from '../../hooks/useSavedDecks';
 import './DeckBuilder.css';
 
 interface DeckBuilderProps {

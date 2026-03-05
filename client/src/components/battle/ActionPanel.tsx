@@ -173,12 +173,6 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
                 Move to Battle
               </button>
             )}
-            <button
-              className="action-panel__btn action-panel__btn--secondary"
-              onClick={() => onAction({ type: 'endTurn' })}
-            >
-              End Turn
-            </button>
           </div>
         ) : (
           <div className="action-panel__group">
@@ -226,12 +220,6 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
               >
                 End Battle
               </button>
-              <button
-                className="action-panel__btn action-panel__btn--secondary"
-                onClick={() => onAction({ type: 'endTurn' })}
-              >
-                End Turn
-              </button>
             </div>
           );
         }
@@ -245,12 +233,6 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
               onClick={() => onAction({ type: 'endBattle' })}
             >
               End Battle
-            </button>
-            <button
-              className="action-panel__btn action-panel__btn--secondary"
-              onClick={() => onAction({ type: 'endTurn' })}
-            >
-              End Turn
             </button>
           </div>
         ) : (

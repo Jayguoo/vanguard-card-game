@@ -77,10 +77,7 @@ export function canCall(
   // Card grade must be <= VG grade
   if (cardDef.grade > vgGrade) return false;
 
-  // Trigger units cannot be normal called from hand
-  if (cardDef.triggerType) return false;
-
-  // Any non-trigger unit with grade <= VG grade can be called to any RC
+  // Any unit with grade <= VG grade can be called to any RC
   return true;
 }
 
@@ -188,8 +185,12 @@ export function canGuard(
   const card = getCard(state, cardInstanceId);
   const def = getCardDefinition(card.cardId);
 
-  // Grade 3 cannot guard from hand (0 shield)
-  if (def.shield <= 0) return false;
+  // Grade 3 cannot guard from hand (0 shield), but sentinels (perfect guards) can
+  if (def.shield <= 0) {
+    const abilities = getAbilitiesForCard(card.cardId);
+    const isSentinel = abilities.some(a => a.triggerEvent === 'onPlaceGC');
+    if (!isSentinel) return false;
+  }
 
   return true;
 }

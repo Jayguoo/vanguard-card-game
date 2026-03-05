@@ -15,7 +15,7 @@
 .rps__backdrop {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, rgba(10, 12, 30, 0.92) 0%, rgba(2, 3, 10, 0.97) 100%);
+  background: var(--rps-backdrop);
   backdrop-filter: blur(16px);
 }
 
@@ -32,8 +32,8 @@
   align-items: center;
   gap: 28px;
   padding: 40px 48px 36px;
-  background: linear-gradient(165deg, rgba(18, 20, 42, 0.95) 0%, rgba(12, 14, 32, 0.98) 100%);
-  border: 1px solid rgba(100, 120, 255, 0.15);
+  background: var(--rps-card);
+  border: 1px solid var(--rps-card-border);
   border-radius: 20px;
   box-shadow:
     0 0 60px rgba(60, 80, 200, 0.08),
@@ -48,14 +48,8 @@
 }
 
 @keyframes rps-card-in {
-  from {
-    opacity: 0;
-    transform: translateY(24px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ── Header ── */
@@ -77,7 +71,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 4px;
-  color: rgba(140, 170, 255, 0.8);
+  color: var(--rps-text);
   white-space: nowrap;
 }
 
@@ -105,11 +99,11 @@
   gap: 8px;
   padding: 24px 28px 18px;
   min-width: 114px;
-  background: rgba(20, 24, 50, 0.8);
-  border: 1.5px solid rgba(80, 100, 200, 0.12);
+  background: var(--rps-choice);
+  border: 1.5px solid var(--rps-choice-border);
   border-radius: 14px;
   cursor: pointer;
-  color: white;
+  color: var(--game-text);
   font-family: inherit;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   animation: rps-choice-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -120,14 +114,8 @@
 .rps__choice:nth-child(3) { animation-delay: 0.24s; }
 
 @keyframes rps-choice-pop {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(16px) scale(0.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .rps__choice:hover:not(:disabled) {
@@ -136,7 +124,7 @@
   box-shadow:
     0 8px 32px rgba(60, 100, 255, 0.15),
     0 0 0 1px rgba(100, 140, 255, 0.08);
-  background: rgba(28, 32, 64, 0.95);
+  background: var(--rps-choice-hover);
 }
 
 .rps__choice:active:not(:disabled) {
@@ -144,7 +132,6 @@
   transition-duration: 0.1s;
 }
 
-/* Emoji */
 .rps__choice-emoji {
   font-size: 44px;
   line-height: 1;
@@ -157,21 +144,19 @@
   filter: drop-shadow(0 4px 12px rgba(60, 100, 255, 0.25));
 }
 
-/* Label */
 .rps__choice-label {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 2.5px;
-  color: rgba(160, 175, 210, 0.6);
+  color: var(--rps-text-dim);
   transition: color 0.2s ease;
 }
 
 .rps__choice:hover:not(:disabled) .rps__choice-label {
-  color: rgba(180, 200, 255, 0.9);
+  color: var(--rps-text);
 }
 
-/* Checkmark on selected */
 .rps__choice-check {
   position: absolute;
   top: 8px;
@@ -213,13 +198,8 @@
   }
 }
 
-.rps__choice--selected .rps__choice-emoji {
-  transform: scale(1.1);
-}
-
-.rps__choice--selected .rps__choice-label {
-  color: rgba(255, 215, 100, 0.9);
-}
+.rps__choice--selected .rps__choice-emoji { transform: scale(1.1); }
+.rps__choice--selected .rps__choice-label { color: rgba(255, 215, 100, 0.9); }
 
 /* ── Disabled (unchosen) ── */
 .rps__choice--disabled {
@@ -235,7 +215,7 @@
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: rgba(120, 140, 180, 0.55);
+  color: var(--game-text-muted);
   font-style: italic;
   letter-spacing: 0.5px;
 }
@@ -290,15 +270,15 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 2px;
-  color: rgba(120, 140, 170, 0.5);
+  color: var(--game-text-muted);
 }
 
 .rps__matchup-emoji {
   font-size: 52px;
   line-height: 1;
   padding: 16px 20px;
-  background: rgba(20, 24, 50, 0.8);
-  border: 1.5px solid rgba(80, 100, 200, 0.15);
+  background: var(--rps-choice);
+  border: 1.5px solid var(--rps-choice-border);
   border-radius: 16px;
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
 }
@@ -308,10 +288,9 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 2px;
-  color: rgba(160, 175, 210, 0.6);
+  color: var(--rps-text-dim);
 }
 
-/* VS divider */
 .rps__vs {
   display: flex;
   align-items: center;
@@ -343,14 +322,8 @@
 }
 
 @keyframes rps-result-text-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .rps__result-text--win {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AuthResponse } from '../shared/types';
+import { AuthResponse } from '../../shared/types';
 import './AuthScreen.css';
 
 interface AuthScreenProps {

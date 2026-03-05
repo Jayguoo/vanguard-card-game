@@ -149,6 +149,10 @@ export class GameEngine {
     return this.state.phase === 'game-over';
   }
 
+  getWinner(): string | null {
+    return this.state.winner;
+  }
+
   /**
    * Get current phase.
    */
@@ -772,6 +776,21 @@ export class GameEngine {
     }
 
     addGuardian(this.state, playerId, cardInstanceId);
+
+    // Check for sentinel (onPlaceGC) abilities — perfect guard
+    checkAbilitiesForEvent(this.state, {
+      event: 'onPlaceGC',
+      playerId,
+      cardInstanceId,
+    });
+    if (this.state.abilityQueue.length > 0) {
+      processAbilityQueue(this.state);
+      // processAbilityQueue may change phase to 'ability-pending'
+      if ((this.state.phase as string) === 'ability-pending' && this.state.abilityPending) {
+        this.state.abilityPending.previousPhase = 'battle-guard-step';
+      }
+    }
+
     return { success: true };
   }
 

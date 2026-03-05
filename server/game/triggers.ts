@@ -191,7 +191,7 @@ export function assignTriggerEffects(
     effectCard.turnCriticalModifier += 1;
     // Update battle attacker critical if the effect target is the attacker
     if (battle.attackingUnit && effectId === battle.attackingUnit) {
-      battle.attackerCritical = 1 + effectCard.turnCriticalModifier;
+      battle.attackerCritical = 1 + effectCard.turnCriticalModifier + effectCard.continuousCriticalModifier;
     }
     if (isSplit) {
       addLogEntry(state, playerId, `Assigned Critical +1 to ${effectTargetName} and Power +5000 to ${powerTargetName}`, 'trigger');
@@ -264,7 +264,8 @@ export function recalculateBattlePowers(state: VanguardGameState): void {
   // Update attacker critical to include all modifiers
   battle.attackerCritical = 1
     + attacker.turnCriticalModifier
-    + attacker.battleCriticalModifier;
+    + attacker.battleCriticalModifier
+    + attacker.continuousCriticalModifier;
 
   // Defend power
   const target = getCard(state, battle.targetUnit);

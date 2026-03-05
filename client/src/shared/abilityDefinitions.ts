@@ -32,10 +32,11 @@ export type AbilityTriggerEvent =
   | 'onRiddenOver'        // another unit rides over this unit (Battleraizer FVG)
   | 'onAttackHits'        // this unit's attack hits any target (VG or RG) — Apollon
   | 'onMainPhaseStart'    // beginning of main phase (Mr. Invincible)
+  | 'onPlaceGC'           // card placed on Guardian Circle (sentinel perfect guard)
   | 'mainPhaseACT'        // ACT ability usable during your main phase
   | 'continuous';          // CONT — always-on, recalculated
 
-export type AbilityLocation = 'VC' | 'RC' | 'VCorRC' | 'hand';
+export type AbilityLocation = 'VC' | 'RC' | 'VCorRC' | 'hand' | 'GC';
 
 // ---- Cost types ----
 
@@ -47,6 +48,7 @@ export interface CostCounterBlast {
 export interface CostDiscardFromHand {
   type: 'discardFromHand';
   amount: number;
+  clanRestriction?: Clan;
 }
 
 export interface CostPutSelfToSoul {
@@ -127,6 +129,28 @@ export interface CondBoostsVanguardOfClan {
   clan: Clan;
 }
 
+export interface CondHandContainsClan {
+  type: 'handContainsClan';
+  clan: Clan;
+  minCount: number;
+}
+
+export interface CondNoOtherFieldUnitNameContains {
+  type: 'noOtherFieldUnitNameContains';
+  nameContains: string;
+}
+
+export interface CondSoulNameCountAtLeast {
+  type: 'soulNameCountAtLeast';
+  nameContains: string;
+  minCount: number;
+}
+
+export interface CondSameColumnBackRowNamed {
+  type: 'sameColumnBackRowNamed';
+  unitName: string;
+}
+
 export type AbilityCondition =
   | CondSoulContainsName
   | CondVanguardClan
@@ -137,7 +161,11 @@ export type AbilityCondition =
   | CondVanguardGrade
   | CondRiddenOverByClan
   | CondHandSizeAtLeast
-  | CondBoostsVanguardOfClan;
+  | CondBoostsVanguardOfClan
+  | CondHandContainsClan
+  | CondNoOtherFieldUnitNameContains
+  | CondSoulNameCountAtLeast
+  | CondSameColumnBackRowNamed;
 
 // ---- Effect types ----
 
@@ -256,6 +284,26 @@ export interface EffectStandAllUnits {
   type: 'standAllUnits';
 }
 
+export interface EffectNullifyAttack {
+  type: 'nullifyAttack';
+}
+
+export interface EffectContinuousPowerUpPerSoulName {
+  type: 'continuousPowerUpPerSoulName';
+  amountPerCard: number;
+  nameContains: string;
+}
+
+export interface EffectContinuousCriticalUpDuringYourTurn {
+  type: 'continuousCriticalUpDuringYourTurn';
+  amount: number;
+}
+
+export interface EffectPutAllNamedRGsToSoul {
+  type: 'putAllNamedRGsToSoul';
+  nameContains: string;
+}
+
 export type AbilityEffect =
   | EffectSelfPowerUp
   | EffectSelfCriticalUp
@@ -278,7 +326,11 @@ export type AbilityEffect =
   | EffectContinuousPowerUpDuringYourTurn
   | EffectInterceptShieldBoost
   | EffectSoulCharge
-  | EffectStandAllUnits;
+  | EffectStandAllUnits
+  | EffectNullifyAttack
+  | EffectContinuousPowerUpPerSoulName
+  | EffectContinuousCriticalUpDuringYourTurn
+  | EffectPutAllNamedRGsToSoul;
 
 // ---- The main AbilityDef structure ----
 
@@ -1158,6 +1210,195 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
       description: 'Lozenge Magus boosts! +3000 power, then returns to deck.',
     },
   ],
+
+  // ---- Sentinel / Perfect Guard Cards ----
+
+  'BT01/011': [
+    {
+      abilityId: 'BT01/011-0',
+      timing: 'AUTO',
+      triggerEvent: 'onPlaceGC',
+      location: 'GC',
+      optional: true,
+      cost: { type: 'discardFromHand', amount: 1, clanRestriction: 'royal-paladin' },
+      conditions: [{ type: 'handContainsClan', clan: 'royal-paladin', minCount: 1 }],
+      effects: [{ type: 'nullifyAttack' }],
+      description: 'Flash Shield, Iseult placed on GC! Discard a Royal Paladin to nullify the attack?',
+    },
+  ],
+  'BT01/015': [
+    {
+      abilityId: 'BT01/015-0',
+      timing: 'AUTO',
+      triggerEvent: 'onPlaceGC',
+      location: 'GC',
+      optional: true,
+      cost: { type: 'discardFromHand', amount: 1, clanRestriction: 'kagero' },
+      conditions: [{ type: 'handContainsClan', clan: 'kagero', minCount: 1 }],
+      effects: [{ type: 'nullifyAttack' }],
+      description: 'Wyvern Guard, Barri placed on GC! Discard a Kagero to nullify the attack?',
+    },
+  ],
+  'BT01/019': [
+    {
+      abilityId: 'BT01/019-0',
+      timing: 'AUTO',
+      triggerEvent: 'onPlaceGC',
+      location: 'GC',
+      optional: true,
+      cost: { type: 'discardFromHand', amount: 1, clanRestriction: 'oracle-think-tank' },
+      conditions: [{ type: 'handContainsClan', clan: 'oracle-think-tank', minCount: 1 }],
+      effects: [{ type: 'nullifyAttack' }],
+      description: 'Battle Sister, Chocolat placed on GC! Discard an Oracle Think Tank to nullify the attack?',
+    },
+  ],
+  'BT02/010': [
+    {
+      abilityId: 'BT02/010-0',
+      timing: 'AUTO',
+      triggerEvent: 'onPlaceGC',
+      location: 'GC',
+      optional: true,
+      cost: { type: 'discardFromHand', amount: 1, clanRestriction: 'spike-brothers' },
+      conditions: [{ type: 'handContainsClan', clan: 'spike-brothers', minCount: 1 }],
+      effects: [{ type: 'nullifyAttack' }],
+      description: 'Cheer Girl, Marilyn placed on GC! Discard a Spike Brothers to nullify the attack?',
+    },
+  ],
+  'BT02/014': [
+    {
+      abilityId: 'BT02/014-0',
+      timing: 'AUTO',
+      triggerEvent: 'onPlaceGC',
+      location: 'GC',
+      optional: true,
+      cost: { type: 'discardFromHand', amount: 1, clanRestriction: 'granblue' },
+      conditions: [{ type: 'handContainsClan', clan: 'granblue', minCount: 1 }],
+      effects: [{ type: 'nullifyAttack' }],
+      description: 'Gust Jinn placed on GC! Discard a Granblue to nullify the attack?',
+    },
+  ],
+  'BT02/019': [
+    {
+      abilityId: 'BT02/019-0',
+      timing: 'AUTO',
+      triggerEvent: 'onPlaceGC',
+      location: 'GC',
+      optional: true,
+      cost: { type: 'discardFromHand', amount: 1, clanRestriction: 'nova-grappler' },
+      conditions: [{ type: 'handContainsClan', clan: 'nova-grappler', minCount: 1 }],
+      effects: [{ type: 'nullifyAttack' }],
+      description: 'Twin Blader placed on GC! Discard a Nova Grappler to nullify the attack?',
+    },
+  ],
+
+  // ========================================
+  // EB01 - RAIZER CARDS (Nova Grappler)
+  // ========================================
+
+  // Perfect Raizer
+  // [CONT](VC/RC): -2000 if no other "Raizer" on field
+  // [CONT](VC): +3000 per "Raizer" in soul (your turn)
+  // [CONT](VC): +1 crit if 4+ "Raizer" in soul (your turn)
+  // [AUTO]: When placed on VC, put all "Raizer" RGs into soul
+  'EB01/001': [
+    {
+      abilityId: 'EB01/001-0',
+      timing: 'CONT',
+      triggerEvent: 'continuous',
+      location: 'VCorRC',
+      optional: false,
+      conditions: [{ type: 'noOtherFieldUnitNameContains', nameContains: 'Raizer' }],
+      effects: [{ type: 'continuousPowerUp', amount: -2000 }],
+      description: 'Perfect Raizer loses 2000 power without other Raizer units.',
+    },
+    {
+      abilityId: 'EB01/001-1',
+      timing: 'CONT',
+      triggerEvent: 'continuous',
+      location: 'VC',
+      optional: false,
+      conditions: [],
+      effects: [{ type: 'continuousPowerUpPerSoulName', amountPerCard: 3000, nameContains: 'Raizer' }],
+      description: 'Perfect Raizer gains 3000 power for each Raizer in soul.',
+    },
+    {
+      abilityId: 'EB01/001-2',
+      timing: 'CONT',
+      triggerEvent: 'continuous',
+      location: 'VC',
+      optional: false,
+      conditions: [{ type: 'soulNameCountAtLeast', nameContains: 'Raizer', minCount: 4 }],
+      effects: [{ type: 'continuousCriticalUpDuringYourTurn', amount: 1 }],
+      description: 'Perfect Raizer gains +1 critical with 4+ Raizers in soul.',
+    },
+    {
+      abilityId: 'EB01/001-3',
+      timing: 'AUTO',
+      triggerEvent: 'onPlaceVC',
+      location: 'VC',
+      optional: false,
+      conditions: [],
+      effects: [{ type: 'putAllNamedRGsToSoul', nameContains: 'Raizer' }],
+      description: 'Perfect Raizer placed on VC! All Raizer rear-guards move to soul.',
+    },
+  ],
+
+  // Hi-powered Raizer Custom
+  // [CONT](VC/RC): During your turn, +8000 if "Battleraizer" in same column back row
+  'EB01/003': [
+    {
+      abilityId: 'EB01/003-0',
+      timing: 'CONT',
+      triggerEvent: 'continuous',
+      location: 'VCorRC',
+      optional: false,
+      conditions: [{ type: 'sameColumnBackRowNamed', unitName: 'Battleraizer' }],
+      effects: [{ type: 'continuousPowerUpDuringYourTurn', amount: 8000 }],
+      description: 'Hi-powered Raizer Custom gains 8000 power with Battleraizer behind it.',
+    },
+  ],
+
+  // Raizer Custom
+  // [CONT](VC/RC): During your turn, +6000 if "Battleraizer" in same column back row
+  'EB01/017': [
+    {
+      abilityId: 'EB01/017-0',
+      timing: 'CONT',
+      triggerEvent: 'continuous',
+      location: 'VCorRC',
+      optional: false,
+      conditions: [{ type: 'sameColumnBackRowNamed', unitName: 'Battleraizer' }],
+      effects: [{ type: 'continuousPowerUpDuringYourTurn', amount: 6000 }],
+      description: 'Raizer Custom gains 6000 power with Battleraizer behind it.',
+    },
+  ],
+
+  // Battleraizer (EB01 version — same abilities as TD03/015)
+  // [AUTO]: When another NG rides this → call self to RC
+  // [AUTO](RC): When boosts → boosted unit +3000 (battle), then return to deck
+  'EB01/020': [
+    {
+      abilityId: 'EB01/020-0',
+      timing: 'AUTO',
+      triggerEvent: 'onRiddenOver',
+      location: 'VC',
+      optional: true,
+      conditions: [{ type: 'riddenOverByClan', clan: 'nova-grappler' }],
+      effects: [{ type: 'callSelfToRC' }],
+      description: 'A Nova Grappler rides over Battleraizer! Call Battleraizer to a rear-guard circle?',
+    },
+    {
+      abilityId: 'EB01/020-1',
+      timing: 'AUTO',
+      triggerEvent: 'onBoost',
+      location: 'RC',
+      optional: false,
+      conditions: [],
+      effects: [{ type: 'boostedUnitPowerUpThenReturnToDeck', amount: 3000 }],
+      description: 'Battleraizer boosts! +3000 power, then returns to deck.',
+    },
+  ],
 };
 
 /**
@@ -1199,18 +1440,16 @@ export function getCONTAbilities(cardId: string): AbilityDef[] {
 }
 
 /**
- * Check if a player can pay an ability's cost given current game state.
- * Used client-side to hide skills that can't be activated.
+ * Check if a player can pay an ability's cost (client-side UI helper).
  */
 export function canPayAbilityCost(
   cost: AbilityCost | undefined,
   faceUpDamage: number,
   soulCount: number,
   handSize: number,
-  unitIsRested: boolean,
+  isRested: boolean,
 ): boolean {
   if (!cost) return true;
-
   switch (cost.type) {
     case 'counterBlast':
       return faceUpDamage >= cost.amount;
@@ -1218,39 +1457,12 @@ export function canPayAbilityCost(
       return soulCount >= cost.amount;
     case 'discardFromHand':
       return handSize >= cost.amount;
-    case 'restSelf':
-      return !unitIsRested;
     case 'putSelfToSoul':
-      return true; // always payable if card is on field
-    case 'compound':
-      // Check all sub-costs, but accumulate consumed resources
-      let cbLeft = faceUpDamage;
-      let sbLeft = soulCount;
-      let handLeft = handSize;
-      let canRest = !unitIsRested;
-      for (const sub of cost.costs) {
-        switch (sub.type) {
-          case 'counterBlast':
-            if (cbLeft < sub.amount) return false;
-            cbLeft -= sub.amount;
-            break;
-          case 'soulBlast':
-            if (sbLeft < sub.amount) return false;
-            sbLeft -= sub.amount;
-            break;
-          case 'discardFromHand':
-            if (handLeft < sub.amount) return false;
-            handLeft -= sub.amount;
-            break;
-          case 'restSelf':
-            if (!canRest) return false;
-            canRest = false;
-            break;
-          case 'putSelfToSoul':
-            break; // always payable
-        }
-      }
       return true;
+    case 'restSelf':
+      return !isRested;
+    case 'compound':
+      return cost.costs.every(c => canPayAbilityCost(c, faceUpDamage, soulCount, handSize, isRested));
     default:
       return true;
   }

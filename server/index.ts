@@ -12,7 +12,6 @@ import {
   GameAction,
   ActionResult,
   AuthResponse,
-  FriendInfo,
 } from '../shared/types';
 import {
   createRoom,
@@ -27,7 +26,7 @@ import {
   setPlayerCustomDeck,
   setPlayerReady,
   areAllPlayersReady,
-} from './roomManager';
+} from './rooms/roomManager';
 import { validateCustomDeck } from './game/deckBuilder';
 import { GameEngine } from './game/GameEngine';
 import {
@@ -38,15 +37,18 @@ import {
   getUser,
   toAuthUser,
   updateFighterName,
+  getUserStats,
+  recordGameResult,
+  getUserIdForSocket,
+  setOnline,
+  setOffline,
   addFriend,
   removeFriend,
   getFriendsList,
-  setOnline,
-  setOffline,
   getSocketIdsForUser,
-} from './accountManager';
-import { RateLimiter } from './rateLimiter';
-import { validateDeckShape, sanitizePlayerName } from './inputValidation';
+} from './auth/accountManager';
+import { RateLimiter } from './middleware/rateLimiter';
+import { validateDeckShape, sanitizePlayerName } from './middleware/inputValidation';
 
 const app = express();
 const httpServer = createServer(app);
@@ -101,8 +103,8 @@ rateLimiter.addRule('room:join', 5, 60000);
 rateLimiter.addRule('room:list', 10, 10000);
 rateLimiter.addRule('auth:register', 3, 60000);
 rateLimiter.addRule('auth:login', 5, 60000);
-rateLimiter.addRule('friends:add', 10, 60000);
 rateLimiter.addRule('deck:submitCustom', 5, 10000);
+rateLimiter.addRule('friends:add', 5, 60000);
 rateLimiter.addRule('latency:ping', 5, 1000);
 setInterval(() => rateLimiter.cleanup(), 5 * 60 * 1000);
 
@@ -120,20 +122,6 @@ io.use((socket, next) => {
   }
   next();
 });
-
-// Helper: notify all of a user's friends about their online status change
-function notifyFriendsOfStatus(userId: string, isOnline: boolean): void {
-  const user = getUser(userId);
-  if (!user) return;
-  for (const friendId of user.friends) {
-    const friendSockets = getSocketIdsForUser(friendId);
-    if (friendSockets) {
-      for (const sid of friendSockets) {
-        io.to(sid).emit('friends:statusUpdate', userId, isOnline);
-      }
-    }
-  }
-}
 
 // ============================================
 // SOCKET.IO EVENT HANDLERS
@@ -258,7 +246,6 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     if (result.success && result.user) {
       socket.data.userId = result.user.userId;
       setOnline(result.user.userId, socket.id);
-      notifyFriendsOfStatus(result.user.userId, true);
     }
     callback(result);
   });
@@ -271,7 +258,6 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     if (result.success && result.user) {
       socket.data.userId = result.user.userId;
       setOnline(result.user.userId, socket.id);
-      notifyFriendsOfStatus(result.user.userId, true);
     }
     callback(result);
   });
@@ -281,6 +267,16 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     if (!uid) { callback({ success: false, error: 'Not authenticated' }); return; }
     const success = updateFighterName(uid, fighterName);
     callback({ success, error: success ? undefined : 'Failed to update' });
+  });
+
+  // ----------------------------------------
+  // STATS
+  // ----------------------------------------
+
+  socket.on('stats:get', (callback) => {
+    const uid = socket.data.userId as string | undefined;
+    if (!uid) { callback(null); return; }
+    callback(getUserStats(uid));
   });
 
   // ----------------------------------------
@@ -485,6 +481,11 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
       if (engine.isGameOver()) {
         room.roomState = 'finished';
         io.to(room.id).emit('room:update', toPublicRoom(room));
+        const winnerId = engine.getWinner();
+        for (const pid of engine.getPlayerIds()) {
+          const puid = getUserIdForSocket(pid);
+          if (puid) recordGameResult(puid, pid === winnerId);
+        }
         gameEngines.delete(room.id);
       }
     }
@@ -519,6 +520,21 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     handlePlayerLeave(socket);
   });
 });
+
+/**
+ * Notify a user's friends about their online/offline status.
+ */
+function notifyFriendsOfStatus(userId: string, isOnline: boolean): void {
+  const friends = getFriendsList(userId);
+  for (const friend of friends) {
+    const friendSocketIds = getSocketIdsForUser(friend.userId);
+    if (friendSocketIds) {
+      for (const sid of friendSocketIds) {
+        io.to(sid).emit('friends:statusUpdate', userId, isOnline);
+      }
+    }
+  }
+}
 
 /**
  * Broadcast game state to each player with their personalized view.
@@ -562,6 +578,11 @@ function scheduleRevealResolve(roomId: string, engine: GameEngine): void {
       if (room) {
         room.roomState = 'finished';
         io.to(room.id).emit('room:update', toPublicRoom(room));
+        const winnerId = eng.getWinner();
+        for (const pid of eng.getPlayerIds()) {
+          const puid = getUserIdForSocket(pid);
+          if (puid) recordGameResult(puid, pid === winnerId);
+        }
         gameEngines.delete(room.id);
       }
     }
@@ -598,6 +619,11 @@ function handlePlayerLeave(socket: Socket): void {
             phase: 'game-over',
           });
         }
+        // Record stats for forfeit
+        const winnerUid = getUserIdForSocket(updatedRoom.players[0].id);
+        const loserUid = getUserIdForSocket(socket.id);
+        if (winnerUid) recordGameResult(winnerUid, true);
+        if (loserUid) recordGameResult(loserUid, false);
       }
       gameEngines.delete(updatedRoom.id);
     }

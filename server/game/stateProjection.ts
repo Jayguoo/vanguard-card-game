@@ -25,6 +25,7 @@ function toPublicCard(card: CardInstance): PublicCardInstance {
     battlePowerModifier: card.battlePowerModifier,
     battleCriticalModifier: card.battleCriticalModifier,
     continuousPowerModifier: card.continuousPowerModifier,
+    continuousCriticalModifier: card.continuousCriticalModifier,
     lostTwinDrive: card.lostTwinDrive,
   };
 }
@@ -112,6 +113,7 @@ function buildPublicBattleState(
     triggerContext: battle.triggerContext,
     attackerCritical: battle.attackerCritical,
     healDamageChoicePending: battle.healDamageChoicePending,
+    nullified: battle.nullified,
   };
 }
 
@@ -192,5 +194,8 @@ function buildPublicAbilityPending(
     minSelections: pending.minSelections,
     maxSelections: pending.maxSelections,
     costDescription: pending.costDescription,
+    validDiscards: pending.validDiscards
+      ? pending.validDiscards.map(id => toPublicCard(state.allCards[id]))
+      : undefined,
   };
 }

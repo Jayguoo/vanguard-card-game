@@ -84,7 +84,7 @@ export function checkAbilitiesForEvent(
   // - onAttackHitsRG: only the attacking unit
   const isSingleCardEvent =
     event === 'onPlaceVC' || event === 'onPlaceRC' || event === 'onPlaceVCorRC' ||
-    event === 'onAttack' || event === 'onBoost' ||
+    event === 'onAttack' || event === 'onBoost' || event === 'onPlaceGC' ||
     event === 'onAttackHitsRG' || event === 'onBoostedAttackHits' ||
     event === 'onAttackHitsVG' || event === 'onAttackHits' || event === 'onRiddenOver';
 
@@ -126,6 +126,11 @@ export function checkAbilitiesForEvent(
     // For 'onRiddenOver', check soul for abilities (e.g., Battleraizer FVG)
     if (event === 'onRiddenOver') {
       checkSoulAbilitiesForEvent(state, pid, context);
+    }
+
+    // For 'onPlaceGC', check guardian circle for sentinel abilities
+    if (event === 'onPlaceGC') {
+      checkGuardianAbilitiesForEvent(state, pid, context);
     }
   }
 }
@@ -175,6 +180,34 @@ function checkSoulAbilitiesForEvent(
     for (const ability of abilities) {
       if (ability.triggerEvent !== context.event) continue;
       // Soul abilities don't have a standard location check — they fire from soul
+      if (!checkConditions(state, playerId, instanceId, ability.conditions, context)) continue;
+
+      resolveOrQueueAbility(state, playerId, instanceId, ability, context);
+    }
+  }
+}
+
+/**
+ * Check guardian circle for abilities that trigger from GC (sentinel perfect guard).
+ * Used for onPlaceGC — the card has been moved to guardian circle when this fires.
+ */
+function checkGuardianAbilitiesForEvent(
+  state: VanguardGameState,
+  playerId: string,
+  context: AbilityContext,
+): void {
+  const player = state.players[playerId];
+
+  for (const instanceId of player.guardianCircle) {
+    // Only check the specific card that was just placed
+    if (context.cardInstanceId && instanceId !== context.cardInstanceId) continue;
+
+    const card = state.allCards[instanceId];
+    const abilities = getAbilitiesForCard(card.cardId);
+
+    for (const ability of abilities) {
+      if (ability.triggerEvent !== context.event) continue;
+      // GC abilities don't have a standard location check — they fire from guardian circle
       if (!checkConditions(state, playerId, instanceId, ability.conditions, context)) continue;
 
       resolveOrQueueAbility(state, playerId, instanceId, ability, context);
@@ -361,6 +394,53 @@ function checkSingleCondition(
       const vg = state.allCards[player.vanguardCircle];
       const vgDef = getCardDefinition(vg.cardId);
       return vgDef.clan === condition.clan;
+    }
+
+    case 'handContainsClan': {
+      // Check if player has at least minCount cards of the specified clan in hand
+      let matchCount = 0;
+      for (const handId of player.hand) {
+        const handCard = state.allCards[handId];
+        const handDef = getCardDefinition(handCard.cardId);
+        if (handDef.clan === condition.clan) {
+          matchCount++;
+          if (matchCount >= condition.minCount) return true;
+        }
+      }
+      return false;
+    }
+
+    case 'noOtherFieldUnitNameContains': {
+      // True if NO other unit on your field has the substring in its name (penalty condition)
+      const units = getFieldUnits(state, playerId);
+      const hasOther = units.some(u => {
+        if (u.instanceId === instanceId) return false;
+        const def = getCardDefinition(state.allCards[u.instanceId].cardId);
+        return def.name.includes(condition.nameContains);
+      });
+      return !hasOther;
+    }
+
+    case 'soulNameCountAtLeast': {
+      let count = 0;
+      for (const id of player.soul) {
+        const def = getCardDefinition(state.allCards[id].cardId);
+        if (def.name.includes(condition.nameContains)) count++;
+      }
+      return count >= condition.minCount;
+    }
+
+    case 'sameColumnBackRowNamed': {
+      const card = state.allCards[instanceId];
+      let backRowSlot: RearGuardPosition | null = null;
+      if (card.position === 'front-left') backRowSlot = 'back-left';
+      else if (card.position === 'front-right') backRowSlot = 'back-right';
+      else if (card.position === 'vanguard') backRowSlot = 'back-center';
+      if (!backRowSlot) return false;
+      const backId = player.rearGuards[backRowSlot];
+      if (!backId) return false;
+      const backDef = getCardDefinition(state.allCards[backId].cardId);
+      return backDef.name === condition.unitName;
     }
 
     default:
@@ -610,6 +690,16 @@ export function resolvePlayerAbilityChoice(
         pending.minSelections = discardAmount;
         pending.maxSelections = discardAmount;
         pending.nonDiscardCostsPaid = true; // Mark so selectDiscard doesn't double-pay
+        // If clan-restricted discard (sentinel), populate validDiscards
+        const cost = ability.cost;
+        if (cost && cost.type === 'discardFromHand' && cost.clanRestriction) {
+          const clanFilter = cost.clanRestriction;
+          const player = state.players[playerId];
+          pending.validDiscards = player.hand.filter(id => {
+            const cardDef = getCardDefinition(state.allCards[id].cardId);
+            return cardDef.clan === clanFilter;
+          });
+        }
         return true;
       }
 
@@ -708,6 +798,12 @@ export function resolvePlayerAbilityChoice(
       // Validate all cards are in hand
       for (const cid of choice.cardInstanceIds) {
         if (!player.hand.includes(cid)) return false;
+      }
+      // Validate clan restriction if validDiscards is set (sentinel)
+      if (pending.validDiscards) {
+        for (const cid of choice.cardInstanceIds) {
+          if (!pending.validDiscards.includes(cid)) return false;
+        }
       }
 
       // Check if this is a "return to deck" selection (from drawThenReturnToDeck)
@@ -1196,6 +1292,41 @@ function applyEffect(
       break;
     }
 
+    case 'nullifyAttack': {
+      if (state.battle) {
+        state.battle.nullified = true;
+        addLog(state, playerId, 'Attack nullified by Perfect Guard!', 'ability');
+      }
+      break;
+    }
+
+    case 'continuousPowerUpPerSoulName':
+    case 'continuousCriticalUpDuringYourTurn':
+      // Handled by recalculateContinuousAbilities — no runtime application needed
+      break;
+
+    case 'putAllNamedRGsToSoul': {
+      const player = state.players[playerId];
+      const rgsToMove: { slot: RearGuardPosition; instanceId: string }[] = [];
+      for (const [slot, id] of Object.entries(player.rearGuards)) {
+        if (!id) continue;
+        const def = getCardDefinition(state.allCards[id].cardId);
+        if (def.name.includes(effect.nameContains)) {
+          rgsToMove.push({ slot: slot as RearGuardPosition, instanceId: id });
+        }
+      }
+      for (const { slot, instanceId: rgId } of rgsToMove) {
+        state.allCards[rgId].zone = 'soul';
+        state.allCards[rgId].position = undefined;
+        state.allCards[rgId].isRested = false;
+        player.rearGuards[slot] = null;
+        player.soul.push(rgId);
+        const def = getCardDefinition(state.allCards[rgId].cardId);
+        addLog(state, playerId, `${def.name} moved to soul.`, 'action');
+      }
+      break;
+    }
+
     // These require targeting — handled via applyTargetedEffect
     case 'retireOpponentRG':
     case 'chooseAllyPowerUp':
@@ -1407,6 +1538,7 @@ export function recalculateContinuousAbilities(state: VanguardGameState): void {
   // Reset all continuous modifiers
   for (const instanceId of Object.keys(state.allCards)) {
     state.allCards[instanceId].continuousPowerModifier = 0;
+    state.allCards[instanceId].continuousCriticalModifier = 0;
   }
 
   // Recalculate for all units on the field
@@ -1436,6 +1568,24 @@ export function recalculateContinuousAbilities(state: VanguardGameState): void {
             // Only active during this player's turn
             if (state.turnPlayerId === playerId) {
               card.continuousPowerModifier += effect.amount;
+            }
+          }
+          if (effect.type === 'continuousPowerUpPerSoulName') {
+            // +X power per soul card with substring in name (only during your turn)
+            if (state.turnPlayerId === playerId) {
+              const player = state.players[playerId];
+              let count = 0;
+              for (const id of player.soul) {
+                const def = getCardDefinition(state.allCards[id].cardId);
+                if (def.name.includes(effect.nameContains)) count++;
+              }
+              card.continuousPowerModifier += effect.amountPerCard * count;
+            }
+          }
+          if (effect.type === 'continuousCriticalUpDuringYourTurn') {
+            // +N critical during your turn
+            if (state.turnPlayerId === playerId) {
+              card.continuousCriticalModifier += effect.amount;
             }
           }
         }
@@ -1665,7 +1815,9 @@ function formatCost(cost: AbilityCost): string {
     case 'counterBlast':
       return `Counter Blast (${cost.amount})`;
     case 'discardFromHand':
-      return `Discard ${cost.amount} from hand`;
+      return cost.clanRestriction
+        ? `Discard ${cost.amount} ${cost.clanRestriction} from hand`
+        : `Discard ${cost.amount} from hand`;
     case 'putSelfToSoul':
       return 'Put this unit into soul';
     case 'restSelf':
