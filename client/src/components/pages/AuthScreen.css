@@ -1,189 +1,470 @@
-.auth-screen {
-  min-height: 100vh;
+/* =====================================================
+   TITLE SCREEN — VGDD-inspired
+   ===================================================== */
+
+.title-screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: #fff;
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* =====================================================
+   Composited background — blue/red gradient + tech mandala
+   No copyrighted art. All CSS + one SVG mandala.
+   ===================================================== */
+
+.title-screen__bg {
+  position: absolute;
+  inset: 0;
+  /* Layer order (top → bottom):
+     1. Soft pink/magenta center bloom
+     2. Conical "energy ray" sweeps (subtle)
+     3. Diagonal blue→red split base
+  */
+  background:
+    radial-gradient(ellipse 55% 75% at 62% 50%, rgba(255, 80, 140, 0.28) 0%, rgba(255, 80, 140, 0) 55%),
+    radial-gradient(ellipse 80% 90% at 50% 50%, rgba(120, 80, 180, 0.18) 0%, rgba(0, 0, 0, 0) 60%),
+    conic-gradient(from 0deg at 60% 50%,
+      rgba(255,255,255,0.04) 0deg,
+      rgba(255,255,255,0)    18deg,
+      rgba(255,255,255,0.05) 36deg,
+      rgba(255,255,255,0)    54deg,
+      rgba(255,255,255,0.04) 72deg,
+      rgba(255,255,255,0)    90deg,
+      rgba(255,255,255,0.05) 108deg,
+      rgba(255,255,255,0)    126deg,
+      rgba(255,255,255,0.04) 144deg,
+      rgba(255,255,255,0)    162deg,
+      rgba(255,255,255,0.05) 180deg,
+      rgba(255,255,255,0)    198deg,
+      rgba(255,255,255,0.04) 216deg,
+      rgba(255,255,255,0)    234deg,
+      rgba(255,255,255,0.05) 252deg,
+      rgba(255,255,255,0)    270deg,
+      rgba(255,255,255,0.04) 288deg,
+      rgba(255,255,255,0)    306deg,
+      rgba(255,255,255,0.05) 324deg,
+      rgba(255,255,255,0)    342deg,
+      rgba(255,255,255,0.04) 360deg
+    ),
+    linear-gradient(120deg,
+      #0a1530 0%,
+      #122366 25%,
+      #1d3aa8 45%,
+      #6a1a4a 65%,
+      #8a1530 85%,
+      #4a0a1c 100%
+    );
+  background-size: cover;
+}
+
+/* The Psyqualia-style sigil layered above the gradient base, slowly rotating.
+   The PNG is monochrome black-on-transparent — `invert + screen` turns it
+   into a glowing white sigil that picks up the red/blue backdrop. */
+.title-screen__bg::before {
+  content: '';
+  position: absolute;
+  left: 60%;
+  top: 50%;
+  width: 130vmin;
+  height: 130vmin;
+  transform: translate(-50%, -50%);
+  background: url('/title/psyqualia-circle.png?v=3') center / contain no-repeat;
+  opacity: 0.78;
+  filter: invert(1) brightness(1.1) drop-shadow(0 0 18px rgba(255, 220, 140, 0.35));
+  mix-blend-mode: screen;
+  animation: mandala-spin 90s linear infinite;
+  pointer-events: none;
+}
+
+/* A second, larger sigil spinning the other way for depth */
+.title-screen__bg::after {
+  content: '';
+  position: absolute;
+  left: 62%;
+  top: 50%;
+  width: 200vmin;
+  height: 200vmin;
+  transform: translate(-50%, -50%);
+  background: url('/title/psyqualia-circle.png?v=3') center / contain no-repeat;
+  opacity: 0.20;
+  filter: invert(1) blur(0.6px) drop-shadow(0 0 22px rgba(120, 180, 255, 0.35));
+  mix-blend-mode: screen;
+  animation: mandala-spin-rev 220s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes mandala-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes mandala-spin-rev {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(-360deg); }
+}
+
+/* =====================================================
+   Centered logo overlay (sits on top of the spinning sigil)
+   ===================================================== */
+
+.title-logo {
+  position: absolute;
+  left: 60%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, 48vw);
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  /* PNG has transparent background already; just add lift + a soft glow. */
+  filter:
+    drop-shadow(0 0 14px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 6px 18px rgba(0, 0, 0, 0.5));
+  animation: title-logo-pop 700ms cubic-bezier(.2,.9,.3,1.2) both;
+}
+
+@keyframes title-logo-pop {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.03); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* When the menu / form is up we shrink the logo a touch so it doesn't
+   compete with the buttons on the right. */
+.title-screen--menu .title-logo,
+.title-screen--login .title-logo,
+.title-screen--register .title-logo {
+  width: min(440px, 38vw);
+  left: 38%;
+  transition: width 320ms ease, left 320ms ease;
+}
+
+/* Soft vignette + scanline-y haze for legibility */
+.title-screen__vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    /* Left-edge dark ramp so future character art / menu text reads */
+    linear-gradient(90deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 35%),
+    /* Top + bottom letterbox vignette */
+    linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 18%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.55) 100%),
+    /* Overall radial darkening */
+    radial-gradient(ellipse at 60% 50%, transparent 30%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+}
+
+.title-screen--menu .title-screen__bg,
+.title-screen--login .title-screen__bg,
+.title-screen--register .title-screen__bg {
+  filter: brightness(0.85) saturate(1.05);
+}
+
+/* Bottom-left credit stamp */
+.title-screen__credit {
+  position: absolute;
+  left: 18px;
+  bottom: 14px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.85);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  max-width: 60vw;
+  line-height: 1.4;
+}
+
+/* Bottom-right version + connection */
+.title-screen__version {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: var(--bg-gradient);
-  padding: 20px;
+  gap: 8px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 
-.auth-card {
-  background: var(--bg-input);
-  border: 1px solid var(--border-default);
-  border-radius: 16px;
-  padding: 40px;
-  max-width: 420px;
-  width: 100%;
-  box-shadow: var(--shadow-panel);
-  backdrop-filter: blur(12px);
+.title-screen__ver {
+  margin-left: 12px;
+  opacity: 0.65;
 }
 
-.auth-title {
-  text-align: center;
-  margin-bottom: 24px;
+.title-screen__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.title-screen__dot.is-on { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+.title-screen__dot.is-off { background: #fbbf24; box-shadow: 0 0 8px #fbbf24; animation: pulse 1.4s infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
 }
 
-.auth-title h1 {
-  margin: 0;
+/* "PRESS ANY BUTTON" */
+.title-screen__press {
+  position: absolute;
+  left: 50%;
+  bottom: 22%;
+  transform: translateX(-50%);
   font-size: 28px;
-  letter-spacing: 6px;
-  color: var(--accent-blue-dark);
   font-weight: 800;
-}
-
-.auth-title h2 {
-  margin: 0;
-  font-size: 38px;
-  letter-spacing: 4px;
-  color: var(--text-primary);
-  font-weight: 900;
-}
-
-.auth-subtitle {
-  text-align: center;
-  color: var(--text-muted);
-  margin: 8px 0 0 0;
-  font-size: 14px;
-  letter-spacing: 2px;
-}
-
-.auth-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 20px;
-  background: var(--bg-panel-subtle);
-  border-radius: 10px;
-  padding: 4px;
-  border: 1px solid var(--border-light);
-}
-
-.auth-tab {
-  flex: 1;
-  padding: 10px 16px;
-  background: transparent;
-  color: var(--text-muted);
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: #fff;
+  text-shadow:
+    0 0 4px rgba(0,0,0,0.9),
+    0 2px 6px rgba(0,0,0,0.8),
+    0 0 18px rgba(255, 100, 100, 0.55);
+  animation: title-press-pulse 1.6s ease-in-out infinite;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.auth-tab:hover {
-  color: var(--text-secondary);
-  background: var(--bg-panel-subtle);
+@keyframes title-press-pulse {
+  0%, 100% { opacity: 0.4; transform: translateX(-50%) scale(0.99); }
+  50%      { opacity: 1;   transform: translateX(-50%) scale(1.01); }
 }
 
-.auth-tab--active {
-  background: var(--bg-panel-hover);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-tab-active);
-}
+/* =====================================================
+   MENU (right-stacked angular buttons)
+   ===================================================== */
 
-.auth-form {
+.title-menu {
+  position: absolute;
+  right: 8%;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  width: min(360px, 32vw);
+  animation: menu-slide-in 420ms cubic-bezier(.2,.9,.3,1) both;
 }
 
-.auth-divider {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  color: var(--text-placeholder);
-  font-size: 13px;
-  margin: 16px 0;
+@keyframes menu-slide-in {
+  from { opacity: 0; transform: translate(20px, -50%); }
+  to   { opacity: 1; transform: translate(0, -50%); }
 }
 
-.auth-divider::before,
-.auth-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border-default);
-}
-
-.btn-guest {
-  width: 100%;
-  padding: 12px;
-  background: var(--bg-input-half);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-guest:hover:not(:disabled) {
-  background: var(--bg-panel-bright);
-  color: var(--text-primary);
-  border-color: var(--accent-blue);
-}
-
-.btn-guest:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-/* Form inputs on auth screen */
-.auth-screen .form-group {
-  margin-bottom: 0;
-}
-
-.auth-screen .form-group label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.auth-screen .form-group input {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--border-default);
-  background: var(--bg-input);
-  border-radius: 8px;
-  font-size: 15px;
-  color: var(--text-primary);
-  transition: border-color 0.2s;
-  box-sizing: border-box;
-}
-
-.auth-screen .form-group input:focus {
-  outline: none;
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 6px var(--accent-blue-glow);
-}
-
-.auth-screen .form-group input::placeholder {
-  color: var(--text-placeholder);
-}
-
-.auth-screen .connection-status {
+/* Hexagonal-ish angular button */
+.title-btn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 8px 16px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 24px;
-  background: var(--bg-panel-faint);
-  border-radius: 20px;
+  height: 56px;
+  padding: 0 28px;
+  border: 0;
+  background: linear-gradient(180deg, #4a4f57 0%, #2b2e35 100%);
+  color: #f3f4f6;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  /* Angled corners */
+  clip-path: polygon(
+    14px 0,
+    calc(100% - 14px) 0,
+    100% 50%,
+    calc(100% - 14px) 100%,
+    14px 100%,
+    0 50%
+  );
+  transition: transform 120ms ease, filter 160ms ease;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
 }
 
-.auth-screen .error-message {
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  border: 1px solid var(--color-danger-border);
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  margin-bottom: 8px;
+/* Inner border using a pseudo-element (keeps the clip-path edge clean) */
+.title-btn::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  background: linear-gradient(180deg, #3c4047 0%, #1f2227 100%);
+  clip-path: inherit;
+  z-index: 0;
+}
+.title-btn > span {
+  position: relative;
+  z-index: 1;
+}
+
+.title-btn:hover:not(:disabled) {
+  filter: brightness(1.18);
+  transform: translateY(-1px);
+}
+.title-btn:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+.title-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Primary / highlighted (orange-red gradient with yellow glow) */
+.title-btn--primary {
+  background: linear-gradient(180deg, #ff7a45 0%, #c1272d 100%);
+  box-shadow:
+    0 0 0 2px #f5c84b,
+    0 0 16px rgba(245, 200, 75, 0.45),
+    0 6px 18px rgba(193, 39, 45, 0.35);
+}
+.title-btn--primary::before {
+  background: linear-gradient(180deg, #ff8b5a 0%, #a01f25 100%);
+}
+.title-btn--primary:hover:not(:disabled) {
+  box-shadow:
+    0 0 0 2px #ffe27a,
+    0 0 26px rgba(245, 200, 75, 0.65),
+    0 8px 22px rgba(193, 39, 45, 0.45);
+}
+
+.title-btn--wide {
+  width: 100%;
+  height: 52px;
+  margin-top: 4px;
+}
+
+/* =====================================================
+   FORM PANEL (login / register)
+   ===================================================== */
+
+.title-form-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 6vw;
+  background: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.6) 100%);
+  animation: form-fade 280ms ease both;
+}
+
+@keyframes form-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.title-form {
+  width: min(420px, 92vw);
+  background: linear-gradient(180deg, rgba(20,24,32,0.92) 0%, rgba(10,12,18,0.95) 100%);
+  border: 1px solid rgba(245, 200, 75, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.6),
+    0 18px 60px rgba(0,0,0,0.55),
+    0 0 36px rgba(245, 200, 75, 0.12);
+  padding: 24px 26px 28px;
+  border-radius: 4px;
+  /* Subtle angular corners */
+  clip-path: polygon(
+    12px 0,
+    100% 0,
+    100% calc(100% - 12px),
+    calc(100% - 12px) 100%,
+    0 100%,
+    0 12px
+  );
+}
+
+.title-form__head {
+  position: relative;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.title-form__head h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: #fff;
+}
+.title-form__sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase;
+}
+.title-form__back {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.75);
+  padding: 4px 10px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 160ms ease;
+}
+.title-form__back:hover {
+  border-color: #f5c84b;
+  color: #ffe27a;
+}
+
+.title-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.title-form__field label {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: #f5c84b;
+  font-weight: 700;
+}
+.title-form__field input {
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  border-radius: 2px;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+  font-family: inherit;
+}
+.title-form__field input::placeholder {
+  color: rgba(255,255,255,0.3);
+}
+.title-form__field input:focus {
+  border-color: #f5c84b;
+  box-shadow: 0 0 0 2px rgba(245, 200, 75, 0.18);
+}
+
+.title-form__error {
+  background: rgba(193, 39, 45, 0.18);
+  border: 1px solid rgba(255, 100, 100, 0.5);
+  color: #ffd5d5;
+  padding: 8px 12px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  border-radius: 2px;
+  margin-bottom: 12px;
+}
+
+/* =====================================================
+   Responsive shrink
+   ===================================================== */
+
+@media (max-width: 720px) {
+  .title-menu { right: 5%; width: 70vw; }
+  .title-screen__press { font-size: 20px; bottom: 18%; }
+  .title-form-wrap { justify-content: center; padding: 0 16px; }
 }

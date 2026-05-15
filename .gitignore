@@ -13,8 +13,10 @@ build/
 # IDE
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
+*.bak
 
 # OS
 .DS_Store
