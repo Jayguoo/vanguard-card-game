@@ -443,6 +443,11 @@ function checkSingleCondition(
       return backDef.name === condition.unitName;
     }
 
+    case 'selfFlag': {
+      const card = state.allCards[instanceId] as any;
+      return Boolean(card[condition.flag]) === (condition.value ?? true);
+    }
+
     default:
       return true;
   }
@@ -525,14 +530,24 @@ function autoResolveAbility(
 // Pops next ability from queue, sets abilityPending, changes phase.
 
 export function processAbilityQueue(state: VanguardGameState, savedPreviousPhase?: GamePhase): boolean {
-  if (state.abilityQueue.length === 0) return false;
+  if (state.abilityQueue.length === 0) {
+    if (
+      state.phase === 'ability-pending' &&
+      !state.abilityPending &&
+      savedPreviousPhase &&
+      savedPreviousPhase !== 'ability-pending'
+    ) {
+      state.phase = savedPreviousPhase;
+    }
+    return false;
+  }
 
   const queued = state.abilityQueue.shift()!;
   const card = state.allCards[queued.cardInstanceId];
   const abilities = getAbilitiesForCard(card.cardId);
   const ability = abilities.find(a => a.abilityId === queued.abilityId);
 
-  if (!ability) return false;
+  if (!ability) return processAbilityQueue(state, savedPreviousPhase);
 
   // Determine the pending type based on the ability
   const pendingType = getPendingType(ability);
@@ -542,11 +557,11 @@ export function processAbilityQueue(state: VanguardGameState, savedPreviousPhase
   let searchResults: string[] | undefined;
 
   if (pendingType === 'select-target') {
-    validTargets = getValidTargets(state, queued.playerId, ability);
+    validTargets = getValidTargets(state, queued.playerId, ability, queued.cardInstanceId);
     if (validTargets.length === 0) {
       // No valid targets — skip this ability
       addLog(state, queued.playerId, `${ability.description} — no valid targets`, 'ability');
-      return processAbilityQueue(state); // try next in queue
+      return processAbilityQueue(state, savedPreviousPhase); // try next in queue
     }
   }
 
@@ -717,7 +732,7 @@ export function resolvePlayerAbilityChoice(
 
       if (needsTarget) {
         // Transition to target selection
-        const validTargets = getValidTargets(state, playerId, ability);
+        const validTargets = getValidTargets(state, playerId, ability, pending.cardInstanceId);
         if (validTargets.length === 0) {
           addLog(state, playerId, `${ability.description} — no valid targets`, 'ability');
           finishAbilityPending(state);
@@ -755,7 +770,7 @@ export function resolvePlayerAbilityChoice(
         pending.type = 'select-discard';
         pending.minSelections = drawReturnEffect.returnAmount;
         pending.maxSelections = drawReturnEffect.returnAmount;
-        pending.description = `Choose ${drawReturnEffect.returnAmount} card(s) from your hand to return to the top of your deck.`;
+        pending.description = `Choose ${drawReturnEffect.returnAmount} card(s) from your hand to return to your deck.`;
         pending.nonDiscardCostsPaid = true; // costs already paid, mark to prevent double-pay
         (pending as any)._returnToDeckNotDrop = true; // flag to put on top of deck instead of drop zone
         addLog(state, playerId, ability.description, 'ability');
@@ -793,6 +808,9 @@ export function resolvePlayerAbilityChoice(
 
     case 'selectDiscard': {
       if (!choice.cardInstanceIds || choice.cardInstanceIds.length === 0) return false;
+      const selectionCount = choice.cardInstanceIds.length;
+      if (pending.minSelections !== undefined && selectionCount < pending.minSelections) return false;
+      if (pending.maxSelections !== undefined && selectionCount > pending.maxSelections) return false;
 
       const player = state.players[playerId];
       // Validate all cards are in hand
@@ -810,7 +828,7 @@ export function resolvePlayerAbilityChoice(
       const isReturnToDeck = (pending as any)._returnToDeckNotDrop === true;
 
       if (isReturnToDeck) {
-        // Return selected cards to top of deck (not drop zone)
+        // Return selected cards to deck (not drop zone), then shuffle.
         for (const cid of choice.cardInstanceIds) {
           const idx = player.hand.indexOf(cid);
           if (idx === -1) continue;
@@ -818,9 +836,10 @@ export function resolvePlayerAbilityChoice(
           const card = state.allCards[cid];
           card.zone = 'deck';
           card.isFaceUp = false;
-          player.deck.unshift(cid); // top of deck
           const def = getCardDefinition(card.cardId);
-          addLog(state, playerId, `Returned ${def.name} to top of deck`, 'ability');
+          player.deck.push(cid);
+          shuffleDeck(state, playerId);
+          addLog(state, playerId, `Returned ${def.name} to deck and shuffled`, 'ability');
         }
         finishAbilityPending(state);
         return true;
@@ -924,6 +943,13 @@ export function canPayCost(
 
     case 'discardFromHand': {
       const player = state.players[playerId];
+      if (cost.clanRestriction) {
+        const matchingCards = player.hand.filter(id => {
+          const cardDef = getCardDefinition(state.allCards[id].cardId);
+          return cardDef.clan === cost.clanRestriction;
+        });
+        return matchingCards.length >= cost.amount;
+      }
       return player.hand.length >= cost.amount;
     }
 
@@ -944,6 +970,11 @@ export function canPayCost(
     case 'soulBlast': {
       const player = state.players[playerId];
       return player.soul.length >= cost.amount;
+    }
+
+    case 'putSelfFromHandToDeckTop': {
+      if (!instanceId) return false;
+      return state.players[playerId].hand.includes(instanceId);
     }
 
     case 'compound': {
@@ -1012,6 +1043,20 @@ export function payCost(
       break;
     }
 
+    case 'putSelfFromHandToDeckTop': {
+      if (!instanceId) break;
+      const player = state.players[playerId];
+      const idx = player.hand.indexOf(instanceId);
+      if (idx === -1) break;
+      player.hand.splice(idx, 1);
+      const card = state.allCards[instanceId];
+      card.zone = 'deck';
+      card.isFaceUp = false;
+      player.deck.unshift(instanceId);
+      addLog(state, playerId, `Put ${getCardDefinition(card.cardId).name} on top of deck`, 'ability');
+      break;
+    }
+
     case 'compound': {
       for (const c of cost.costs) {
         payCost(state, playerId, c, instanceId);
@@ -1043,6 +1088,9 @@ function payNonDiscardCosts(
     case 'soulBlast':
       payCost(state, playerId, cost, instanceId);
       break;
+    case 'putSelfFromHandToDeckTop':
+      payCost(state, playerId, cost, instanceId);
+      break;
     case 'compound':
       for (const c of cost.costs) {
         if (c.type !== 'discardFromHand') {
@@ -1058,6 +1106,33 @@ function payNonDiscardCosts(
 // ============================================
 // EFFECT APPLICATION
 // ============================================
+
+export function drawCardsForPlayer(
+  state: VanguardGameState,
+  playerId: string,
+  amount: number,
+): number {
+  const player = state.players[playerId];
+  let drawnCount = 0;
+
+  for (let i = 0; i < amount; i++) {
+    if (player.deck.length === 0) break;
+    const cardId = player.deck.shift()!;
+    const drawn = state.allCards[cardId];
+    drawn.zone = 'hand';
+    drawn.isFaceUp = true;
+    player.hand.push(cardId);
+    drawnCount++;
+
+    checkAbilitiesForEvent(state, {
+      event: 'onDraw',
+      playerId,
+      cardInstanceId: cardId,
+    });
+  }
+
+  return drawnCount;
+}
 
 function applyEffect(
   state: VanguardGameState,
@@ -1101,15 +1176,7 @@ function applyEffect(
     }
 
     case 'draw': {
-      const player = state.players[playerId];
-      for (let i = 0; i < effect.amount; i++) {
-        if (player.deck.length === 0) break;
-        const cardId = player.deck.shift()!;
-        const drawn = state.allCards[cardId];
-        drawn.zone = 'hand';
-        drawn.isFaceUp = true;
-        player.hand.push(cardId);
-      }
+      drawCardsForPlayer(state, playerId, effect.amount);
       break;
     }
 
@@ -1125,6 +1192,15 @@ function applyEffect(
     case 'superiorRideFromHand': {
       // Yaksha: ride the card that has this ability from hand
       executeSuperiorRide(state, playerId, instanceId);
+      break;
+    }
+
+    case 'enableStandOnAttackHitRG': {
+      const card = state.allCards[instanceId];
+      card.overlordRestandActive = true;
+      if (effect.loseTwinDrive) {
+        card.lostTwinDrive = true;
+      }
       break;
     }
 
@@ -1167,35 +1243,18 @@ function applyEffect(
       const boosted = state.allCards[boostedId];
       boosted.battlePowerModifier += effect.amount;
 
-      // Mark this unit for return to deck at end of battle
+      // Mark this unit for return to deck at end phase
       const card = state.allCards[instanceId];
-      (card as any)._returnToDeckAfterBattle = true;
+      (card as any)._returnToDeckAtEndPhase = true;
       break;
     }
 
     case 'eachPlayerDraw': {
       // Both players draw — owner first, then opponent
-      const player = state.players[playerId];
       const opponentId = getOpponentId(state, playerId);
-      const opponent = state.players[opponentId];
 
-      for (let i = 0; i < effect.amount; i++) {
-        if (player.deck.length === 0) break;
-        const cardId = player.deck.shift()!;
-        const drawn = state.allCards[cardId];
-        drawn.zone = 'hand';
-        drawn.isFaceUp = true;
-        player.hand.push(cardId);
-      }
-
-      for (let i = 0; i < effect.amount; i++) {
-        if (opponent.deck.length === 0) break;
-        const cardId = opponent.deck.shift()!;
-        const drawn = state.allCards[cardId];
-        drawn.zone = 'hand';
-        drawn.isFaceUp = true;
-        opponent.hand.push(cardId);
-      }
+      drawCardsForPlayer(state, playerId, effect.amount);
+      drawCardsForPlayer(state, opponentId, effect.amount);
       break;
     }
 
@@ -1233,15 +1292,7 @@ function applyEffect(
     case 'drawThenReturnToDeck': {
       // Draw cards first, then the player will be prompted to return some to deck
       // The drawing part happens here; the return is handled via the pending flow
-      const player = state.players[playerId];
-      for (let i = 0; i < effect.drawAmount; i++) {
-        if (player.deck.length === 0) break;
-        const cardId = player.deck.shift()!;
-        const drawn = state.allCards[cardId];
-        drawn.zone = 'hand';
-        drawn.isFaceUp = true;
-        player.hand.push(cardId);
-      }
+      drawCardsForPlayer(state, playerId, effect.drawAmount);
       addLog(state, playerId, `Drew ${effect.drawAmount} card(s)`, 'ability');
       // Note: the return-to-deck selection is handled by the pending flow
       // (see getPendingType and resolvePlayerAbilityChoice)
@@ -1416,6 +1467,7 @@ export function getValidTargets(
   state: VanguardGameState,
   playerId: string,
   ability: AbilityDef,
+  sourceInstanceId?: string,
 ): string[] {
   const targets: string[] = [];
 
@@ -1451,12 +1503,7 @@ export function getValidTargets(
       case 'chooseAllyPowerUp': {
         const myUnits = getFieldUnits(state, playerId);
         for (const u of myUnits) {
-          // Check excludeSelf
-          if (effect.excludeSelf && u.instanceId === ability.abilityId.split('-')[0]) continue;
-          // Actually, we need to compare with the actual ability source instanceId
-          // We can check by the pending state
-          const pending = state.abilityPending;
-          if (effect.excludeSelf && pending && u.instanceId === pending.cardInstanceId) continue;
+          if (effect.excludeSelf && sourceInstanceId && u.instanceId === sourceInstanceId) continue;
 
           // Check clan restriction
           if (effect.clanRestriction) {
@@ -1630,9 +1677,13 @@ export function canActivateACT(
   if (ability.timing !== 'ACT') return false;
 
   // Check location
-  const position = getCardPosition(state, playerId, instanceId);
-  if (!position) return false;
-  if (!checkLocation(ability, position)) return false;
+  if (ability.location === 'hand') {
+    if (!state.players[playerId].hand.includes(instanceId)) return false;
+  } else {
+    const position = getCardPosition(state, playerId, instanceId);
+    if (!position) return false;
+    if (!checkLocation(ability, position)) return false;
+  }
 
   // Check conditions
   if (!checkConditions(state, playerId, instanceId, ability.conditions, {
@@ -1824,6 +1875,8 @@ function formatCost(cost: AbilityCost): string {
       return 'Rest this unit';
     case 'soulBlast':
       return `Soul Blast (${cost.amount})`;
+    case 'putSelfFromHandToDeckTop':
+      return 'Reveal this card and put it on top of your deck';
     case 'compound':
       return cost.costs.map(c => formatCost(c)).join(' & ');
     default:

@@ -14,7 +14,7 @@ interface HandAreaProps {
   onDragEnd?: () => void;
 }
 
-export const HandArea: React.FC<HandAreaProps> = ({
+export const HandArea = React.memo<HandAreaProps>(({
   cards,
   selectedCardId,
   highlightedCardIds = [],
@@ -51,11 +51,14 @@ export const HandArea: React.FC<HandAreaProps> = ({
   // Flat hand layout — no curve, no rotation
   const getCardStyle = (index: number): React.CSSProperties => {
     const isSelected = cards[index] && cards[index].instanceId === selectedCardId;
+    const center = (cards.length - 1) / 2;
+    const offset = index - center;
 
     return {
-      transform: isSelected ? 'translateY(-16px)' : undefined,
-      zIndex: index,
-    };
+      '--hand-angle': `${Math.max(-10, Math.min(10, offset * 2.2))}deg`,
+      '--hand-lift': `${Math.abs(offset) * 1.5}px`,
+      zIndex: isSelected ? cards.length + 1 : index,
+    } as React.CSSProperties;
   };
 
   return (
@@ -109,4 +112,5 @@ export const HandArea: React.FC<HandAreaProps> = ({
       </div>
     </div>
   );
-};
+});
+HandArea.displayName = 'HandArea';

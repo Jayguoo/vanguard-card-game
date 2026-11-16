@@ -19,10 +19,11 @@ interface VanguardCardProps {
   showPowerOverlay?: boolean;
   showShieldOverlay?: boolean;
   powerOverride?: number;
+  rotateWithState?: boolean;
   className?: string;
 }
 
-export const VanguardCard: React.FC<VanguardCardProps> = ({
+export const VanguardCard = React.memo<VanguardCardProps>(({
   card,
   faceDown = false,
   rested = false,
@@ -38,6 +39,7 @@ export const VanguardCard: React.FC<VanguardCardProps> = ({
   showPowerOverlay = true,
   showShieldOverlay = false,
   powerOverride,
+  rotateWithState = true,
   className = '',
 }) => {
   if (!card) return null;
@@ -47,14 +49,17 @@ export const VanguardCard: React.FC<VanguardCardProps> = ({
 
   const showFaceDown = faceDown || !card.isFaceUp;
   const isRested = rested || card.isRested;
-  const basePower = def.power + card.turnPowerModifier;
+  const basePower = def.power
+    + card.turnPowerModifier
+    + card.battlePowerModifier
+    + card.continuousPowerModifier;
   const totalPower = powerOverride ?? basePower;
-  const hasPowerBuff = totalPower > basePower || card.turnPowerModifier > 0;
+  const hasPowerBuff = totalPower > def.power;
 
   const classes = [
     'vg-card',
     `vg-card--${size}`,
-    isRested ? 'vg-card--rested' : '',
+    rotateWithState && isRested ? 'vg-card--rested' : '',
     selected ? 'vg-card--selected' : '',
     highlighted ? 'vg-card--highlighted' : '',
     abilityGlow ? 'vg-card--ability-glow' : '',
@@ -100,9 +105,10 @@ export const VanguardCard: React.FC<VanguardCardProps> = ({
       )}
     </div>
   );
-};
+});
+VanguardCard.displayName = 'VanguardCard';
 
-export const CardBack: React.FC<{ size?: 'tiny' | 'small' | 'medium' | 'large'; count?: number; onClick?: () => void; isOpponent?: boolean }> = ({
+export const CardBack = React.memo<{ size?: 'tiny' | 'small' | 'medium' | 'large'; count?: number; onClick?: () => void; isOpponent?: boolean }>(({
   size = 'medium',
   count,
   onClick,
@@ -122,5 +128,5 @@ export const CardBack: React.FC<{ size?: 'tiny' | 'small' | 'medium' | 'large'; 
       )}
     </div>
   );
-};
-
+});
+CardBack.displayName = 'CardBack';

@@ -10,6 +10,8 @@ import {
   CardInstance,
   RearGuardPosition,
 } from '../../shared/types';
+import { getAbilitiesForCard } from '../../shared/abilityDefinitions';
+import { canActivateACT } from './abilities';
 
 function toPublicCard(card: CardInstance): PublicCardInstance {
   return {
@@ -85,8 +87,32 @@ function buildMyPlayerState(
     ...publicState,
     hand: resolveCards(state, player.hand),
     soul: resolveCards(state, player.soul),
-    deck: resolveCards(state, player.deck),
   };
+}
+
+function buildActivatableACTAbilities(
+  state: VanguardGameState,
+  playerId: string,
+): Record<string, number[]> {
+  const player = state.players[playerId];
+  const instanceIds = new Set<string>([
+    ...player.hand,
+    ...(player.vanguardCircle ? [player.vanguardCircle] : []),
+    ...Object.values(player.rearGuards).filter((id): id is string => id !== null),
+  ]);
+  const result: Record<string, number[]> = {};
+
+  for (const instanceId of instanceIds) {
+    const card = state.allCards[instanceId];
+    const indices = getAbilitiesForCard(card.cardId)
+      .map((_, index) => index)
+      .filter(index => canActivateACT(state, playerId, instanceId, index));
+    if (indices.length > 0) {
+      result[instanceId] = indices;
+    }
+  }
+
+  return result;
 }
 
 function buildPublicBattleState(
@@ -162,6 +188,7 @@ export function getStateForPlayer(
     winner: state.winner,
     actionLog: state.actionLog.slice(-50), // last 50 entries
     abilityPending: buildPublicAbilityPending(state),
+    activatableACTAbilities: buildActivatableACTAbilities(state, playerId),
   };
 }
 

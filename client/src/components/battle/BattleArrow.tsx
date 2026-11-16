@@ -19,9 +19,11 @@ function getCircleCenter(
   if (!el) return null;
   const boardRect = boardEl.getBoundingClientRect();
   const elRect = el.getBoundingClientRect();
+  const scaleX = boardEl.clientWidth / boardRect.width;
+  const scaleY = boardEl.clientHeight / boardRect.height;
   return {
-    x: elRect.left + elRect.width / 2 - boardRect.left,
-    y: elRect.top + elRect.height / 2 - boardRect.top,
+    x: (elRect.left + elRect.width / 2 - boardRect.left) * scaleX,
+    y: (elRect.top + elRect.height / 2 - boardRect.top) * scaleY,
   };
 }
 
@@ -49,13 +51,16 @@ export const BattleArrow: React.FC<BattleArrowProps> = ({ battle, boardRef, isMy
     } else {
       setPoints(null);
     }
-  }, [battle, boardRef]);
+  }, [battle, boardRef, isMyTurn]);
 
   useEffect(() => {
     updatePoints();
+    const observer = new ResizeObserver(updatePoints);
+    if (boardRef.current) observer.observe(boardRef.current);
     window.addEventListener('resize', updatePoints);
     window.addEventListener('scroll', updatePoints, true);
     return () => {
+      observer.disconnect();
       window.removeEventListener('resize', updatePoints);
       window.removeEventListener('scroll', updatePoints, true);
     };

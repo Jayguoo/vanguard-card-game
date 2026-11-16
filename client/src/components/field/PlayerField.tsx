@@ -5,7 +5,8 @@ import {
   PublicCardInstance,
   FieldPosition,
 } from '../../shared/types';
-import { FieldCircle } from './FieldCircle';
+import { CardSlot } from './FieldCircle';
+import { SoulViewer } from './SoulViewer';
 import './PlayerField.css';
 
 interface PlayerFieldProps {
@@ -24,15 +25,15 @@ interface PlayerFieldProps {
 }
 
 const POSITION_LABELS: Record<FieldPosition, string> = {
-  'front-left': 'FL',
-  'vanguard': 'VG',
-  'front-right': 'FR',
-  'back-left': 'BL',
-  'back-center': 'BC',
-  'back-right': 'BR',
+  'front-left': 'R',
+  'vanguard': 'V',
+  'front-right': 'R',
+  'back-left': 'R',
+  'back-center': 'R',
+  'back-right': 'R',
 };
 
-export const PlayerField: React.FC<PlayerFieldProps> = ({
+export const PlayerField = React.memo<PlayerFieldProps>(({
   playerState,
   isOpponent,
   onCircleClick,
@@ -74,7 +75,7 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
   };
 
   const renderCircle = (position: FieldPosition) => (
-    <FieldCircle
+    <CardSlot
       key={position}
       card={getCard(position)}
       label={POSITION_LABELS[position]}
@@ -90,6 +91,13 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
       onCardRightClick={onCardRightClick ? (card, e) => onCardRightClick(position, card, e) : undefined}
       onCardHover={onCardHover}
       onDrop={onDrop}
+      underlay={position === 'vanguard' ? (
+        <SoulViewer
+          count={playerState.soulCount}
+          cards={'soul' in playerState ? playerState.soul : undefined}
+          isOpponent={isOpponent}
+        />
+      ) : undefined}
     />
   );
 
@@ -129,4 +137,5 @@ export const PlayerField: React.FC<PlayerFieldProps> = ({
       )}
     </div>
   );
-};
+});
+PlayerField.displayName = 'PlayerField';

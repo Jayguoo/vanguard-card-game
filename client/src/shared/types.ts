@@ -99,6 +99,7 @@ export interface CardInstance {
   continuousPowerModifier: number; // recalculated on demand (e.g. Gancelot)
   continuousCriticalModifier: number; // recalculated on demand (e.g. Perfect Raizer)
   lostTwinDrive: boolean;          // Dragonic Overlord re-stand effect
+  overlordRestandActive?: boolean; // Dragonic Overlord ACT effect until end of turn
 }
 
 // ============================================
@@ -335,7 +336,6 @@ export interface PublicPlayerState {
 export interface MyPlayerState extends PublicPlayerState {
   hand: PublicCardInstance[];
   soul: PublicCardInstance[];
-  deck: PublicCardInstance[];
 }
 
 export interface PublicBattleState {
@@ -388,6 +388,7 @@ export interface PublicVanguardGameState {
   winner: string | null;
   actionLog: GameLogEntry[];
   abilityPending: PublicAbilityPendingState | null;
+  activatableACTAbilities: Record<string, number[]>;
 }
 
 // ============================================

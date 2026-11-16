@@ -3,8 +3,8 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  min-width: 96px;
-  padding: 6px 4px;
+  min-width: 72px;
+  padding: 3px 2px;
   background: var(--game-surface);
   border: 1px solid var(--game-surface-border);
   border-radius: 6px;
@@ -21,8 +21,8 @@
 
 .drop-zone__pile {
   position: relative;
-  width: 80px;
-  height: 112px;
+  width: 64px;
+  height: 90px;
 }
 
 .drop-zone__top-card {

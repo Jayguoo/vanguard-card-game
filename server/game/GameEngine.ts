@@ -118,7 +118,11 @@ export class GameEngine {
 
       // Auto-advance through automatic phases
       if (result.success) {
+        recalculateContinuousAbilities(this.state);
+        recalculateBattlePowers(this.state);
         this.autoAdvance();
+        recalculateContinuousAbilities(this.state);
+        recalculateBattlePowers(this.state);
       }
 
       return result;
@@ -726,6 +730,10 @@ export class GameEngine {
       // Phase is now 'battle-guard-step'
     }
 
+    if (this.state.abilityQueue.length > 0) {
+      processAbilityQueue(this.state);
+    }
+
     return { success: true };
   }
 
@@ -1255,6 +1263,8 @@ export class GameEngine {
     const playerId = this.state.turnPlayerId;
     const player = this.state.players[playerId];
 
+    this.returnMarkedUnitsToDeck(playerId);
+
     // Clear first turn flag
     player.isFirstTurn = false;
     player.hasRiddenThisTurn = false;
@@ -1296,7 +1306,40 @@ export class GameEngine {
     card.zone = 'hand';
     card.isFaceUp = true;
     player.hand.push(cardId);
+    checkAbilitiesForEvent(this.state, {
+      event: 'onDraw',
+      playerId,
+      cardInstanceId: cardId,
+    });
     return true;
+  }
+
+  private returnMarkedUnitsToDeck(playerId: string): void {
+    const player = this.state.players[playerId];
+
+    for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as RearGuardPosition[]) {
+      const unitId = player.rearGuards[pos];
+      if (!unitId) continue;
+
+      const card = this.state.allCards[unitId];
+      if (!(card as any)._returnToDeckAtEndPhase) continue;
+
+      delete (card as any)._returnToDeckAtEndPhase;
+      player.rearGuards[pos] = null;
+      card.zone = 'deck';
+      card.position = undefined;
+      card.isRested = false;
+      card.turnPowerModifier = 0;
+      card.turnCriticalModifier = 0;
+      card.battlePowerModifier = 0;
+      card.battleCriticalModifier = 0;
+      card.overlordRestandActive = false;
+      player.deck.push(unitId);
+      player.deck = reshuffleDeck(player.deck);
+
+      const cardDef = getCardDefinition(card.cardId);
+      this.addLog(playerId, `${cardDef.name} returned to deck (deck shuffled)`, 'ability');
+    }
   }
 
   private resetTurnModifiers(playerId: string): void {
@@ -1307,6 +1350,7 @@ export class GameEngine {
       const vg = this.state.allCards[player.vanguardCircle];
       vg.turnPowerModifier = 0;
       vg.turnCriticalModifier = 0;
+      vg.overlordRestandActive = false;
     }
 
     // Reset all RG modifiers
@@ -1316,6 +1360,7 @@ export class GameEngine {
         const unit = this.state.allCards[unitId];
         unit.turnPowerModifier = 0;
         unit.turnCriticalModifier = 0;
+        unit.overlordRestandActive = false;
       }
     }
   }

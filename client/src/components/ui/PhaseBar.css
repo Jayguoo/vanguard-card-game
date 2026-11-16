@@ -1,104 +1,84 @@
 .phase-bar {
+  --phase-accent: #ff2c88;
+  position: relative;
+  width: 286px;
+  min-height: 106px;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 6px 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 14px 22px 9px 27px;
+  color: #fff;
   user-select: none;
+  text-transform: uppercase;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.82));
 }
 
-/* Turn indicator */
+.phase-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0 18px 0 0;
+  z-index: -1;
+  background: linear-gradient(105deg, rgba(1, 8, 15, 0.96), rgba(4, 23, 35, 0.82) 72%, transparent 73%);
+  border-bottom: 2px solid var(--phase-accent);
+  transform: skewX(-9deg);
+  transform-origin: left bottom;
+}
+
+.phase-bar--opp-turn {
+  --phase-accent: #35d9ed;
+}
+
 .phase-bar__turn-indicator {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
-  flex-shrink: 0;
-  padding-right: 16px;
-  border-right: 1px solid var(--game-border-lighter);
-}
-
-.phase-bar__turn-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--game-text-muted);
-  flex-shrink: 0;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
-}
-
-.phase-bar__turn-dot--mine {
-  background: #ffd700;
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
-  animation: turn-dot-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes turn-dot-pulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(255, 215, 0, 0.5); }
-  50% { box-shadow: 0 0 16px rgba(255, 215, 0, 0.8); }
+  padding-left: 3px;
+  color: rgba(236, 248, 255, 0.86);
+  font-size: 11px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  line-height: 1;
 }
 
 .phase-bar__turn-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--game-text-dim);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.phase-bar--my-turn .phase-bar__turn-name {
-  color: #ffd700;
-  text-shadow: 0 0 6px rgba(255, 215, 0, 0.2);
+.phase-bar__turn-number {
+  color: #fff;
+  font-size: 32px;
+  line-height: 0.8;
+  font-style: italic;
+  text-shadow: 2px 2px 0 #07101a;
 }
 
-/* Phases row */
-.phase-bar__phases {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex: 1;
-  justify-content: center;
+.phase-bar__current-phase {
+  margin-top: 3px;
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  font-size: 46px;
+  line-height: 0.95;
+  font-style: italic;
+  letter-spacing: 0.015em;
+  text-shadow: 3px 3px 0 #061019, 0 0 8px rgba(255, 255, 255, 0.22);
 }
 
-.phase-bar__phase {
-  padding: 4px 12px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--game-text-muted);
-  border-radius: 3px;
-  transition: all 0.3s ease;
-  position: relative;
+.phase-bar__phase-line {
+  width: 236px;
+  height: 3px;
+  margin-top: 7px;
+  background: linear-gradient(90deg, transparent, var(--phase-accent) 12%, var(--phase-accent) 72%, transparent);
+  transform: skewX(-18deg);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--phase-accent) 65%, transparent);
 }
 
-.phase-bar__phase--past {
-  color: var(--game-text-dim);
-}
-
-.phase-bar__phase--active {
-  color: var(--game-accent);
-  background: var(--game-accent-bg);
-  box-shadow: 0 0 8px rgba(0, 180, 255, 0.15);
-}
-
-.phase-bar--my-turn .phase-bar__phase--active {
-  background: rgba(255, 215, 0, 0.1);
-  color: #ffd700;
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.12);
-}
-
-.phase-bar__phase--setup {
-  letter-spacing: 2px;
-  color: var(--game-accent);
-  background: var(--game-accent-bg-dim);
-}
-
-.phase-bar__phase--game-over {
-  letter-spacing: 2px;
-  color: #ffd700;
-  background: rgba(255, 215, 0, 0.1);
-  animation: game-over-shimmer 2s ease-in-out infinite;
-}
-
-@keyframes game-over-shimmer {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) {
+  .phase-bar,
+  .phase-bar * {
+    animation: none !important;
+    transition: none !important;
+  }
 }

@@ -1,64 +1,44 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PublicCardInstance } from '../../shared/types';
-import { VanguardCard } from '../cards/VanguardCard';
+import { CARD_DATABASE } from '../../shared/cardDatabase';
 import './SoulViewer.css';
 
 interface SoulViewerProps {
   count: number;
   cards?: PublicCardInstance[];
+  isOpponent?: boolean;
 }
 
-export const SoulViewer: React.FC<SoulViewerProps> = ({ count, cards }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const handleClick = () => {
-    if (cards && cards.length > 0) {
-      setIsExpanded(!isExpanded);
-    }
-  };
-
-  const canExpand = cards && cards.length > 0;
+export const SoulViewer = React.memo<SoulViewerProps>(({ count, cards, isOpponent = false }) => {
+  const visibleCards = Array.from({ length: Math.min(count, 3) }, (_, index) => {
+    const card = cards?.[Math.max(0, cards.length - 3) + index];
+    const definition = card ? CARD_DATABASE[card.cardId] : undefined;
+    return {
+      key: card?.instanceId ?? `hidden-soul-${index}`,
+      imagePath: definition?.imagePath ?? '/cards/card-back.webp',
+      name: definition?.name ?? 'Hidden soul card',
+    };
+  });
 
   return (
-    <div className="soul-viewer">
-      <div
-        className={`soul-viewer__counter ${canExpand ? 'soul-viewer__counter--clickable' : ''}`}
-        onClick={handleClick}
-        title={canExpand ? 'Click to view soul cards' : 'Soul'}
-      >
-        <span className="soul-viewer__icon">S</span>
-        <span className="soul-viewer__count">{count}</span>
+    <div className={`soul-viewer ${isOpponent ? 'soul-viewer--opponent' : ''}`} aria-label={`Soul, ${count} cards`}>
+      <div className="soul-viewer__stack" aria-hidden="true">
+        {visibleCards.map((card, index) => (
+          <img
+            key={card.key}
+            className="soul-viewer__stack-card"
+            src={card.imagePath}
+            alt=""
+            style={{ '--soul-index': index } as React.CSSProperties}
+            draggable={false}
+          />
+        ))}
       </div>
-
-      {isExpanded && cards && cards.length > 0 && (
-        <div className="soul-viewer__overlay" onClick={() => setIsExpanded(false)}>
-          <div
-            className="soul-viewer__panel"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="soul-viewer__header">
-              <span className="soul-viewer__title">Soul ({cards.length})</span>
-              <button
-                className="soul-viewer__close"
-                onClick={() => setIsExpanded(false)}
-              >
-                X
-              </button>
-            </div>
-            <div className="soul-viewer__cards">
-              {cards.map((card) => (
-                <div key={card.instanceId} className="soul-viewer__card-item">
-                  <VanguardCard
-                    card={card}
-                    size="small"
-                    showPowerOverlay={false}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <span className="soul-viewer__counter">
+        <span>SOUL</span>
+        <strong>{count}</strong>
+      </span>
     </div>
   );
-};
+});
+SoulViewer.displayName = 'SoulViewer';

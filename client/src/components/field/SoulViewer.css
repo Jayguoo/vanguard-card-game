@@ -1,107 +1,54 @@
 .soul-viewer {
-  position: relative;
-  display: inline-flex;
-}
-
-.soul-viewer__counter {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--game-soul-bg);
-  border: 1px solid var(--game-soul-border);
-  border-radius: 12px;
-  padding: 3px 10px;
-  user-select: none;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.soul-viewer__counter--clickable {
-  cursor: pointer;
-}
-
-.soul-viewer__counter--clickable:hover {
-  background: rgba(140, 60, 200, 0.2);
-  border-color: rgba(140, 60, 200, 0.35);
-}
-
-.soul-viewer__icon {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--game-soul-text);
-}
-
-.soul-viewer__count {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--game-text-secondary);
-}
-
-/* Expanded overlay */
-.soul-viewer__overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--game-overlay);
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
 }
 
-.soul-viewer__panel {
-  background: var(--game-panel);
-  border: 1px solid var(--game-border-light);
-  border-radius: 8px;
-  padding: 16px;
-  max-width: 480px;
-  max-height: 400px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--game-shadow);
+.soul-viewer__stack {
+  position: absolute;
+  inset: 6px 9px 0;
 }
 
-.soul-viewer__header {
+.soul-viewer__stack-card {
+  --soul-index: 0;
+  position: absolute;
+  inset: 0;
+  width: 64px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid rgba(164, 99, 255, 0.38);
+  transform: translateY(calc((var(--soul-index) + 1) * 5px));
+  filter: brightness(0.5) saturate(0.78);
+  box-shadow: 0 0 8px rgba(126, 60, 210, 0.2);
+}
+
+.soul-viewer--opponent .soul-viewer__stack-card {
+  transform: rotate(180deg) translateY(calc((var(--soul-index) + 1) * 5px));
+}
+
+.soul-viewer__counter {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  bottom: -8px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--game-border-subtle);
+  gap: 4px;
+  height: 17px;
+  padding: 0 5px;
+  color: #c9a6ff;
+  background: rgba(17, 7, 31, 0.94);
+  border: 1px solid rgba(164, 99, 255, 0.5);
+  border-radius: 3px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 6px;
+  letter-spacing: 0.08em;
 }
 
-.soul-viewer__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--game-soul-text);
-}
-
-.soul-viewer__close {
-  background: var(--game-surface);
-  border: 1px solid var(--game-surface-border);
-  border-radius: 4px;
-  color: var(--game-text-faint);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.soul-viewer__close:hover {
-  background: var(--game-surface-hover);
-  color: var(--game-text-secondary);
-}
-
-.soul-viewer__cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  overflow-y: auto;
-  padding: 4px;
-}
-
-.soul-viewer__card-item {
-  flex-shrink: 0;
+.soul-viewer__counter strong {
+  color: #f0e2ff;
+  font-size: 9px;
 }

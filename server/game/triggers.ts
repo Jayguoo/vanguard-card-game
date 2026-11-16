@@ -68,6 +68,11 @@ export function performTriggerCheck(
           drawnCard.zone = 'hand';
           drawnCard.isFaceUp = true;
           player.hand.push(drawnCardId);
+          checkAbilitiesForEvent(state, {
+            event: 'onDraw',
+            playerId,
+            cardInstanceId: drawnCardId,
+          });
           autoEffectApplied = 'Drew 1 card';
         }
         break;

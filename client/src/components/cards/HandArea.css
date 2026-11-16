@@ -9,29 +9,34 @@
 
 .hand-area__cards {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: center;
   position: relative;
-  padding: 4px 40px;
+  height: 132px;
+  padding: 0 40px;
 }
 
 .hand-area__card-wrapper {
+  --hand-angle: 0deg;
+  --hand-lift: 0px;
   position: relative;
   transition: transform 0.2s ease, margin 0.2s ease, z-index 0s;
   transform-origin: bottom center;
+  transform: translateY(var(--hand-lift)) rotate(var(--hand-angle));
   flex-shrink: 0;
-  margin: 0 -4px;
+  margin: 0 -8px;
 }
 
 .hand-area__card-wrapper:hover {
   z-index: 100 !important;
   filter: brightness(1.1);
-  transform: translateY(-12px) scale(1.05);
-  margin: 0 20px;
+  transform: translateY(calc(var(--hand-lift) - 18px)) rotate(var(--hand-angle)) scale(1.08);
+  margin-inline: 7px;
 }
 
 .hand-area__card-wrapper--selected {
   z-index: 99 !important;
+  transform: translateY(calc(var(--hand-lift) - 20px)) rotate(var(--hand-angle));
 }
 
 .hand-area__card-wrapper--entering {

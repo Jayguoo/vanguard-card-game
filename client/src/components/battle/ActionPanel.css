@@ -1,105 +1,119 @@
 .action-panel {
-  background: var(--game-panel);
-  border: 1px solid var(--game-border-light);
-  border-radius: 10px;
-  padding: 14px;
+  position: absolute;
+  inset: 0;
+  color: #f7fdff;
+  font-family: Bahnschrift, 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  pointer-events: none;
+}
+
+.action-panel__information-label {
+  position: absolute;
+  top: 112px;
+  left: 300px;
+  z-index: 2;
+  width: 126px;
+  height: 24px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  backdrop-filter: blur(8px);
-  box-shadow: var(--game-shadow), var(--game-inset);
+  align-items: center;
+  padding-left: 13px;
+  color: #fff;
+  background: #071019;
+  border: 1px solid rgba(232, 248, 252, 0.65);
+  clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .action-panel__phase-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: var(--game-accent-mid);
-  text-align: center;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--game-border-lighter);
-  transition: color 0.3s ease, opacity 0.3s ease;
+  display: none;
+}
+
+.action-panel__commands {
+  display: contents;
 }
 
 .action-panel__group {
+  position: absolute;
+  inset: 0;
   display: flex;
-  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
   gap: 8px;
-  align-items: stretch;
+  padding: 0 78px 8px 330px;
+  pointer-events: none;
 }
 
 .action-panel__hint {
+  position: absolute;
+  top: 126px;
+  left: 50%;
+  width: 610px;
+  min-height: 34px;
   margin: 0;
+  padding: 7px 18px;
+  transform: translateX(-50%);
+  color: #10161a;
+  background: linear-gradient(90deg, #f7fbfc, #dfe8eb 78%, rgba(223, 232, 235, 0.12));
+  border-block: 1px solid #fff;
   font-size: 13px;
-  color: var(--game-text-secondary);
+  font-weight: 650;
+  line-height: 18px;
   text-align: center;
-  line-height: 1.4;
-  padding: 4px 0;
+}
+
+.action-panel__hint:nth-of-type(2) {
+  top: 162px;
+  width: 420px;
+  min-height: 24px;
+  padding-block: 3px;
+  color: #d9f8ff;
+  background: rgba(2, 12, 18, 0.94);
+  border: 1px solid rgba(53, 217, 237, 0.54);
+  font-size: 11px;
 }
 
 .action-panel__hint--waiting {
-  color: var(--game-text-muted);
-  font-style: italic;
+  color: #263238;
 }
 
 .action-panel__hint--warning {
-  color: rgba(255, 180, 80, 0.9);
+  color: #7d1228;
 }
 
 .action-panel__hint--trigger {
-  color: rgba(255, 215, 0, 0.95);
-  font-weight: 600;
-  text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
-  animation: trigger-pulse 2s ease-in-out infinite;
+  color: #153c43;
 }
 
-@keyframes trigger-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.action-panel__hint--intercept {
-  color: rgba(100, 200, 255, 0.95);
-  font-weight: 600;
-  font-size: 12px;
-  padding: 2px 0;
-}
-
+.action-panel__hint--intercept,
 .action-panel__hint--confirm {
-  color: rgba(0, 220, 180, 0.95);
-  font-weight: 600;
-  font-size: 14px;
-  padding: 6px 0;
+  color: #122f35;
 }
 
-/* Base button style */
 .action-panel__btn {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  min-width: 92px;
+  min-height: 30px;
+  padding: 5px 13px;
+  border: 1px solid rgba(232, 248, 252, 0.78);
+  border-radius: 1px;
+  color: #f7fdff;
+  background: rgba(2, 9, 14, 0.96);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-  text-align: center;
-  letter-spacing: 0.5px;
-  animation: action-btn-in 0.25s ease-out both;
+  pointer-events: auto;
+  transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), border-color 140ms ease, background 140ms ease;
 }
 
-@keyframes action-btn-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.action-panel__btn:hover {
-  transform: translateY(-1px);
+.action-panel__btn:hover,
+.action-panel__btn:focus-visible {
+  transform: translateY(-2px);
+  border-color: #fff;
+  outline: 2px solid #ff2c59;
+  outline-offset: 1px;
 }
 
 .action-panel__btn:active {
@@ -107,57 +121,32 @@
 }
 
 .action-panel__btn:disabled {
-  opacity: 0.4;
+  opacity: 0.42;
   cursor: not-allowed;
   transform: none;
 }
 
-/* Primary: gold - main actions */
 .action-panel__btn--primary {
-  background: linear-gradient(135deg, #b8901d 0%, #d4a82a 50%, #b8901d 100%);
-  color: #0a0a0f;
-  box-shadow: 0 2px 8px rgba(200, 160, 30, 0.3);
+  background: rgba(3, 9, 13, 0.97);
+  border-color: #ff345d;
+  box-shadow: 0 0 0 2px rgba(255, 34, 78, 0.3), inset 0 0 12px rgba(255, 34, 78, 0.12);
 }
 
-.action-panel__btn--primary:hover {
-  box-shadow: 0 4px 16px rgba(200, 160, 30, 0.5);
-  background: linear-gradient(135deg, #c8a025 0%, #e4b830 50%, #c8a025 100%);
-}
-
-/* Secondary: theme-aware muted */
-.action-panel__btn--secondary {
-  background: var(--game-btn-secondary);
-  color: var(--game-btn-secondary-text);
-  border: 1px solid var(--game-btn-secondary-border);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.action-panel__btn--secondary:hover {
-  background: var(--game-btn-secondary-hover);
-  border-color: var(--game-border);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-/* Accent: blue/cyan - phase transitions */
 .action-panel__btn--accent {
-  background: linear-gradient(135deg, #1a5080 0%, #2070a8 50%, #1a5080 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(30, 100, 160, 0.3);
+  background: #086375;
+  border-color: #50dff0;
 }
 
-.action-panel__btn--accent:hover {
-  box-shadow: 0 4px 16px rgba(30, 100, 160, 0.5);
-  background: linear-gradient(135deg, #2060a0 0%, #2880b8 50%, #2060a0 100%);
-}
-
-/* Danger: red - no guard */
 .action-panel__btn--danger {
-  background: linear-gradient(135deg, #701520 0%, #a02030 50%, #701520 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(160, 30, 40, 0.3);
+  background: #691427;
+  border-color: #e95670;
 }
 
-.action-panel__btn--danger:hover {
-  box-shadow: 0 4px 16px rgba(160, 30, 40, 0.5);
-  background: linear-gradient(135deg, #801828 0%, #b02838 50%, #801828 100%);
+@media (prefers-reduced-motion: reduce) {
+  .action-panel,
+  .action-panel * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

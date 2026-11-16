@@ -2,9 +2,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   width: 100%;
-  padding: 6px 4px;
+  padding: 3px 2px;
   background: var(--game-surface);
   border: 1px solid var(--game-surface-border);
   border-radius: 6px;
@@ -23,8 +23,9 @@
 .damage-zone__count-badge {
   background: var(--game-accent-bg);
   border: 1px solid var(--game-border);
-  border-radius: 10px;
-  padding: 1px 8px;
+  border-radius: 2px;
+  padding: 1px 12px;
+  clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -61,15 +62,15 @@
 
 .damage-zone__stack {
   position: relative;
-  width: 112px;
-  min-height: 80px;
+  width: 110px;
+  min-height: 78px;
 }
 
 .damage-zone__card {
   position: absolute;
   left: 0;
-  width: 112px;
-  height: 80px;
+  width: 110px;
+  height: 78px;
   transition: top 0.2s ease;
 }
 
@@ -93,8 +94,8 @@
 }
 
 .damage-zone__empty {
-  width: 112px;
-  height: 80px;
+  width: 110px;
+  height: 78px;
   border: 1px solid var(--game-surface-border);
   border-radius: 4px;
   background: var(--game-surface-faint);

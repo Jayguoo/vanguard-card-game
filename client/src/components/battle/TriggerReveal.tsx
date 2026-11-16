@@ -56,6 +56,7 @@ function getTriggerLabel(type: string): string {
     case 'draw': return 'Draw';
     case 'stand': return 'Stand';
     case 'heal': return 'Heal';
+    case 'front': return 'Front';
     default: return type;
   }
 }

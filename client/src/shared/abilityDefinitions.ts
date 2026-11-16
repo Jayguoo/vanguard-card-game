@@ -32,6 +32,7 @@ export type AbilityTriggerEvent =
   | 'onRiddenOver'        // another unit rides over this unit (Battleraizer FVG)
   | 'onAttackHits'        // this unit's attack hits any target (VG or RG) — Apollon
   | 'onMainPhaseStart'    // beginning of main phase (Mr. Invincible)
+  | 'onDraw'              // player draws a card
   | 'onPlaceGC'           // card placed on Guardian Circle (sentinel perfect guard)
   | 'mainPhaseACT'        // ACT ability usable during your main phase
   | 'continuous';          // CONT — always-on, recalculated
@@ -64,6 +65,10 @@ export interface CostSoulBlast {
   amount: number;
 }
 
+export interface CostPutSelfFromHandToDeckTop {
+  type: 'putSelfFromHandToDeckTop';
+}
+
 export interface CostCompound {
   type: 'compound';
   costs: AbilityCost[];
@@ -75,6 +80,7 @@ export type AbilityCost =
   | CostPutSelfToSoul
   | CostRestSelf
   | CostSoulBlast
+  | CostPutSelfFromHandToDeckTop
   | CostCompound;
 
 // ---- Condition types ----
@@ -151,6 +157,12 @@ export interface CondSameColumnBackRowNamed {
   unitName: string;
 }
 
+export interface CondSelfFlag {
+  type: 'selfFlag';
+  flag: 'overlordRestandActive';
+  value?: boolean;
+}
+
 export type AbilityCondition =
   | CondSoulContainsName
   | CondVanguardClan
@@ -165,7 +177,8 @@ export type AbilityCondition =
   | CondHandContainsClan
   | CondNoOtherFieldUnitNameContains
   | CondSoulNameCountAtLeast
-  | CondSameColumnBackRowNamed;
+  | CondSameColumnBackRowNamed
+  | CondSelfFlag;
 
 // ---- Effect types ----
 
@@ -304,6 +317,11 @@ export interface EffectPutAllNamedRGsToSoul {
   nameContains: string;
 }
 
+export interface EffectEnableStandOnAttackHitRG {
+  type: 'enableStandOnAttackHitRG';
+  loseTwinDrive: boolean;
+}
+
 export type AbilityEffect =
   | EffectSelfPowerUp
   | EffectSelfCriticalUp
@@ -330,7 +348,8 @@ export type AbilityEffect =
   | EffectNullifyAttack
   | EffectContinuousPowerUpPerSoulName
   | EffectContinuousCriticalUpDuringYourTurn
-  | EffectPutAllNamedRGsToSoul;
+  | EffectPutAllNamedRGsToSoul
+  | EffectEnableStandOnAttackHitRG;
 
 // ---- The main AbilityDef structure ----
 
@@ -398,7 +417,6 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
   // #3a — Solitary Knight, Gancelot — ACT
   // [ACT](VC):[CB(2)] If "Blaster Blade" in soul → +5000/+1 crit (turn)
   // #3b — Gancelot — ACT (Hand) — put self on top of deck → search Blaster Blade
-  // Note: Hand ACT ability not yet supported by engine, so only VC ACT is implemented
   'TD01/003': [
     {
       abilityId: 'TD01/003-0',
@@ -415,6 +433,19 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
         { type: 'selfCriticalUp', amount: 1, scope: 'turn' },
       ],
       description: 'Activate Gancelot? Pay CB(2) for +5000 power and +1 critical! (Blaster Blade in soul)',
+    },
+    {
+      abilityId: 'TD01/003-1',
+      timing: 'ACT',
+      triggerEvent: 'mainPhaseACT',
+      location: 'hand',
+      optional: true,
+      cost: { type: 'putSelfFromHandToDeckTop' },
+      conditions: [],
+      effects: [
+        { type: 'searchDeckForName', name: 'Blaster Blade', addToHand: true },
+      ],
+      description: 'Reveal Gancelot and put it on top of your deck to search for Blaster Blade?',
     },
   ],
 
@@ -555,34 +586,47 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
   // TD02 - KAGERO
   // ========================================
 
-  // #10a — Dragonic Overlord — ACT
-  // [ACT](VC/RC): CB(3), if no other Kagero units → self +5000/+1 crit (turn)
-  // #10b — Dragonic Overlord — AUTO
-  // [AUTO](VC/RC): Attack hits RG → stand self, lose Twin Drive
+  // Dragonic Overlord
+  // [CONT](VC/RC): If no other Kagero units -> -2000
+  // [ACT](VC/RC): CB(3) -> +5000 and gains rear-guard hit restand, loses Twin Drive
   'TD02/001': [
     {
       abilityId: 'TD02/001-0',
+      timing: 'CONT',
+      triggerEvent: 'continuous',
+      location: 'VCorRC',
+      optional: false,
+      conditions: [
+        { type: 'noOtherClanUnits', clan: 'kagero' },
+      ],
+      effects: [
+        { type: 'continuousPowerUp', amount: -2000 },
+      ],
+      description: 'Dragonic Overlord loses 2000 power without another Kagero unit.',
+    },
+    {
+      abilityId: 'TD02/001-1',
       timing: 'ACT',
       triggerEvent: 'mainPhaseACT',
       location: 'VCorRC',
       optional: true,
       cost: { type: 'counterBlast', amount: 3 },
-      conditions: [
-        { type: 'noOtherClanUnits', clan: 'kagero' },
-      ],
+      conditions: [],
       effects: [
         { type: 'selfPowerUp', amount: 5000, scope: 'turn' },
-        { type: 'selfCriticalUp', amount: 1, scope: 'turn' },
+        { type: 'enableStandOnAttackHitRG', loseTwinDrive: true },
       ],
-      description: 'Activate Dragonic Overlord? Pay CB(3) for +5000 power and +1 critical this turn.',
+      description: 'Activate Dragonic Overlord? Pay CB(3) for +5000 power and stand when his attack hits a rear-guard this turn.',
     },
     {
-      abilityId: 'TD02/001-1',
+      abilityId: 'TD02/001-2',
       timing: 'AUTO',
       triggerEvent: 'onAttackHitsRG',
       location: 'VCorRC',
       optional: false,
-      conditions: [],
+      conditions: [
+        { type: 'selfFlag', flag: 'overlordRestandActive' },
+      ],
       effects: [
         { type: 'standSelf', loseTwinDrive: true },
       ],
@@ -670,18 +714,18 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
   // TD02/007 — Embodiment of Armor, Bahr — no ability
 
   // #15 — Dragon Monk, Gojo
-  // [ACT](RC): [Put self to soul + Discard 1] → Draw 1
+  // [ACT](VC/RC): [Rest self + Discard 1] -> Draw 1
   'TD02/008': [
     {
       abilityId: 'TD02/008-0',
       timing: 'ACT',
       triggerEvent: 'mainPhaseACT',
-      location: 'RC',
+      location: 'VCorRC',
       optional: true,
       cost: {
         type: 'compound',
         costs: [
-          { type: 'putSelfToSoul' },
+          { type: 'restSelf' },
           { type: 'discardFromHand', amount: 1 },
         ],
       },
@@ -689,7 +733,7 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
       effects: [
         { type: 'draw', amount: 1 },
       ],
-      description: 'Activate Gojo? Put him to soul and discard 1 card to draw 1 card.',
+      description: 'Activate Gojo? Rest him and discard 1 card to draw 1 card.',
     },
   ],
 
@@ -1097,12 +1141,44 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
   ],
 
   // TD04/004 — Oracle Guardian, Wiseman — vanilla (no abilities)
-  // TD04/005 — Security Guardian — intercept shield boost (not fully supported, skipped)
-  // TD04/006 — Sword Dancer Angel — onDraw event (too complex for current system, skipped)
+  // TD04/005 — Security Guardian
+  // TD04/006 — Sword Dancer Angel
   // TD04/007 — Oracle Guardian, Gemini — vanilla (no abilities)
 
   // #31 — Dark Cat
   // [AUTO]: On place VC/RC, if OTT VG → each player draws 1
+  'TD04/005': [
+    {
+      abilityId: 'TD04/005-0',
+      timing: 'AUTO',
+      triggerEvent: 'onAttack',
+      location: 'RC',
+      optional: false,
+      conditions: [
+        { type: 'vanguardClan', clan: 'oracle-think-tank' },
+      ],
+      effects: [
+        { type: 'interceptShieldBoost', amount: 5000 },
+      ],
+      description: 'Security Guardian intercepts with extra shield! +5000 Shield!',
+    },
+  ],
+
+  'TD04/006': [
+    {
+      abilityId: 'TD04/006-0',
+      timing: 'AUTO',
+      triggerEvent: 'onDraw',
+      location: 'VCorRC',
+      optional: false,
+      conditions: [],
+      effects: [
+        { type: 'selfPowerUp', amount: 1000, scope: 'turn' },
+      ],
+      description: 'Sword Dancer Angel gets +1000 power because you drew a card!',
+    },
+  ],
+
   'TD04/008': [
     {
       abilityId: 'TD04/008-0',
@@ -1401,6 +1477,37 @@ export const ABILITY_DATABASE: Record<string, AbilityDef[]> = {
   ],
 };
 
+const EXACT_REPRINT_ABILITY_ALIASES: Record<string, string> = {
+  'BT01/002': 'TD01/005', // Blaster Blade
+  'BT01/010': 'TD01/003', // Solitary Knight, Gancelot
+  'BT01/041': 'TD01/007', // Covenant Knight, Randolf
+  'BT01/044': 'TD01/009', // Wingal
+  'BT01/004': 'TD02/001', // Dragonic Overlord
+  'BT01/023': 'TD02/006', // Wyvern Strike, Tejas
+  'BT01/049': 'TD02/008', // Dragon Monk, Gojo
+  'BT01/050': 'TD02/011', // Wyvern Strike, Jarran
+  'BT01/025': 'TD04/001', // Oracle Guardian, Apollon
+  'BT01/027': 'TD04/015', // Lozenge Magus
+  'BT01/055': 'TD04/009', // Weather Girl, Milk
+  'BT01/028': 'TD03/003', // Mr. Invincible
+  'BT01/031': 'TD03/010', // Queen of Heart
+  'BT01/032': 'TD03/015', // Battleraizer
+  'BT02/033': 'TD04/011', // Luck Bird
+  'BT02/065': 'TD04/005', // Security Guardian
+  'BT02/071': 'TD03/006', // NGM Prototype
+  'EB01/033': 'TD04/015', // Lozenge Magus
+};
+
+for (const [targetCardId, sourceCardId] of Object.entries(EXACT_REPRINT_ABILITY_ALIASES)) {
+  const sourceAbilities = ABILITY_DATABASE[sourceCardId];
+  if (!sourceAbilities) continue;
+
+  ABILITY_DATABASE[targetCardId] = sourceAbilities.map((ability, index) => ({
+    ...(JSON.parse(JSON.stringify(ability)) as AbilityDef),
+    abilityId: `${targetCardId}-${index}`,
+  }));
+}
+
 /**
  * Get ability definitions for a card.
  * Returns empty array if card has no abilities.
@@ -1459,6 +1566,8 @@ export function canPayAbilityCost(
       return handSize >= cost.amount;
     case 'putSelfToSoul':
       return true;
+    case 'putSelfFromHandToDeckTop':
+      return handSize > 0;
     case 'restSelf':
       return !isRested;
     case 'compound':

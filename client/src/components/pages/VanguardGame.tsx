@@ -11,8 +11,9 @@ import {
   BOOST_COLUMN_MAP,
 } from '../../shared/types';
 import { CARD_DATABASE } from '../../shared/cardDatabase';
-import { getAbilitiesForCard, getACTAbilities, canPayAbilityCost } from '../../shared/abilityDefinitions';
+import { getAbilitiesForCard } from '../../shared/abilityDefinitions';
 import { PlayerField } from '../field/PlayerField';
+import { InteractionOverlay, Playmat, PlayerHUD, Zone } from '../field/Playmat';
 import { DamageZone } from '../field/DamageZone';
 import { DropZone } from '../field/DropZone';
 import { HandArea } from '../cards/HandArea';
@@ -111,7 +112,6 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     if (!zonePreview) return [];
     if (zonePreview.cards) return zonePreview.cards;
     switch (zonePreview.zoneKey) {
-      case 'my-deck': return myState.deck ?? [];
       case 'my-soul': return myState.soul ?? [];
       case 'my-damage': return myState.damageZone;
       case 'my-drop': return myState.dropZone;
@@ -132,11 +132,13 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, []);
 
-  // Compute cost-checking values once for ACT ability filtering
-  const faceUpDamage = useMemo(() =>
-    myState.damageZone.filter(c => c.isFaceUp).length, [myState.damageZone]);
-  const soulCount = myState.soul?.length ?? myState.soulCount ?? 0;
-  const handSize = myState.hand?.length ?? 0;
+  const getActivatableAbilities = useCallback((card: PublicCardInstance) => {
+    const abilities = getAbilitiesForCard(card.cardId);
+    return (gameState.activatableACTAbilities[card.instanceId] ?? []).flatMap(abilityIndex => {
+      const ability = abilities[abilityIndex];
+      return ability ? [{ abilityIndex, description: ability.description }] : [];
+    });
+  }, [gameState.activatableACTAbilities]);
 
   // Auto-scroll when phase changes
   const prevPhaseRef = useRef(phase);
@@ -313,17 +315,11 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       const positions: FieldPosition[] = [];
       if (myState.vanguardCircle) {
         const card = myState.vanguardCircle;
-        const affordable = getACTAbilities(card.cardId).filter(a =>
-          canPayAbilityCost(a.cost, faceUpDamage, soulCount, handSize, card.isRested));
-        if (affordable.length > 0) positions.push('vanguard');
+        if (getActivatableAbilities(card).length > 0) positions.push('vanguard');
       }
       for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as RearGuardPosition[]) {
         const card = myState.rearGuards[pos];
-        if (card) {
-          const affordable = getACTAbilities(card.cardId).filter(a =>
-            canPayAbilityCost(a.cost, faceUpDamage, soulCount, handSize, card.isRested));
-          if (affordable.length > 0) positions.push(pos);
-        }
+        if (card && getActivatableAbilities(card).length > 0) positions.push(pos);
       }
       return positions;
     }
@@ -414,7 +410,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     }
 
     return [];
-  }, [phase, isMyTurn, isDefender, selectedCardId, selectedPosition, boostChoicePending, myState, battle]);
+  }, [phase, isMyTurn, isDefender, selectedCardId, selectedPosition, boostChoicePending, myState, battle, getActivatableAbilities]);
 
   // Highlighted opponent positions (attack targets + ability targets)
   const opponentHighlightedPositions = useMemo((): FieldPosition[] => {
@@ -452,20 +448,14 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     const positions: FieldPosition[] = [];
     if (myState.vanguardCircle) {
       const card = myState.vanguardCircle;
-      const affordable = getACTAbilities(card.cardId).filter(a =>
-        canPayAbilityCost(a.cost, faceUpDamage, soulCount, handSize, card.isRested));
-      if (affordable.length > 0) positions.push('vanguard');
+      if (getActivatableAbilities(card).length > 0) positions.push('vanguard');
     }
     for (const pos of [...FRONT_ROW_POSITIONS, ...BACK_ROW_POSITIONS] as RearGuardPosition[]) {
       const card = myState.rearGuards[pos];
-      if (card) {
-        const affordable = getACTAbilities(card.cardId).filter(a =>
-          canPayAbilityCost(a.cost, faceUpDamage, soulCount, handSize, card.isRested));
-        if (affordable.length > 0) positions.push(pos);
-      }
+      if (card && getActivatableAbilities(card).length > 0) positions.push(pos);
     }
     return positions;
-  }, [phase, isMyTurn, selectedCardId, myState, faceUpDamage, soulCount, handSize]);
+  }, [phase, isMyTurn, selectedCardId, myState, getActivatableAbilities]);
 
   // Determine valid drop target positions when dragging a card
   const dropTargetPositions = useMemo((): FieldPosition[] => {
@@ -531,6 +521,23 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     }
 
     if (phase === 'main-phase' && isMyTurn) {
+      const def = CARD_DATABASE[card.cardId];
+      const vgGrade = myState.vanguardCircle
+        ? CARD_DATABASE[myState.vanguardCircle.cardId]?.grade ?? 0
+        : 0;
+      const canCallFromHand = !!def && def.grade <= vgGrade;
+      const handActs = getActivatableAbilities(card);
+      if (handActs.length > 0 && !canCallFromHand) {
+        setActSkillOverlay({
+          cardId: card.cardId,
+          instanceId: card.instanceId,
+          abilities: handActs,
+        });
+        setPendingAction(null);
+        setSelectedCardId(null);
+        setSelectedPosition(null);
+        return;
+      }
       setPendingAction(null);
       setSelectedCardId(prev => prev === card.instanceId ? null : card.instanceId);
       setSelectedPosition(null);
@@ -578,7 +585,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     }
 
     // Trigger assignment - clicking hand cards does nothing
-  }, [phase, isMyTurn, isDefender, myState, gameState.abilityPending, myId, onAction, scrollTo]);
+  }, [phase, isMyTurn, isDefender, myState, gameState.abilityPending, myId, onAction, scrollTo, getActivatableAbilities]);
 
   // Handle my field circle click
   const handleMyCircleClick = useCallback(async (position: FieldPosition) => {
@@ -624,17 +631,12 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
         ? myState.vanguardCircle
         : myState.rearGuards[position as RearGuardPosition];
       if (unitCard) {
-        const affordable = getACTAbilities(unitCard.cardId).filter(a =>
-          canPayAbilityCost(a.cost, faceUpDamage, soulCount, handSize, unitCard.isRested));
-        if (affordable.length > 0) {
-          const allAbilities = getAbilitiesForCard(unitCard.cardId);
+        const activatableAbilities = getActivatableAbilities(unitCard);
+        if (activatableAbilities.length > 0) {
           setActSkillOverlay({
             cardId: unitCard.cardId,
             instanceId: unitCard.instanceId,
-            abilities: affordable.map(act => ({
-              abilityIndex: allAbilities.indexOf(act),
-              description: act.description,
-            })),
+            abilities: activatableAbilities,
           });
           return;
         }
@@ -792,7 +794,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
       }
       return;
     }
-  }, [phase, isMyTurn, isDefender, selectedCardId, selectedPosition, boostChoicePending, battle, myState, triggerEffectTarget, onAction, scrollTo]);
+  }, [phase, isMyTurn, isDefender, selectedCardId, selectedPosition, boostChoicePending, battle, myState, triggerEffectTarget, onAction, scrollTo, getActivatableAbilities]);
 
   // Handle opponent field click (for attack target selection + ability targeting)
   const handleOpponentCircleClick = useCallback(async (position: FieldPosition) => {
@@ -964,14 +966,10 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     // ACT ability activation (only affordable ones)
     const unitCard = myState.rearGuards[pos];
     if (unitCard) {
-      const affordable = getACTAbilities(unitCard.cardId).filter(a =>
-        canPayAbilityCost(a.cost, faceUpDamage, soulCount, handSize, unitCard.isRested));
-      affordable.forEach((ability) => {
-        const abilities = getAbilitiesForCard(unitCard.cardId);
-        const abilityIndex = abilities.indexOf(ability);
+      getActivatableAbilities(unitCard).forEach(ability => {
         options.push({
           label: `Activate: ${ability.description.split('?')[0].split('!')[0].substring(0, 30)}...`,
-          action: () => onAction({ type: 'ability:activate', instanceId: unitCard.instanceId, abilityIndex }),
+          action: () => onAction({ type: 'ability:activate', instanceId: unitCard.instanceId, abilityIndex: ability.abilityIndex }),
         });
       });
     }
@@ -983,7 +981,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     });
 
     return options;
-  }, [rgMenu, myState, onAction]);
+  }, [rgMenu, myState, onAction, getActivatableAbilities]);
 
   // Handle action from ActionPanel (for direct button actions like End Turn, No Guard, etc.)
   const handleAction = useCallback(async (action: GameAction) => {
@@ -1189,24 +1187,57 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
     return () => { if (timer) clearTimeout(timer); };
   }, [opponentState.handCount, opponentState.deckCount]);
 
+  const interactionVariant: 'idle' | 'battle' | 'guard' | 'trigger' | 'ability' =
+    phase === 'battle-guard-step'
+      ? 'guard'
+      : phase.startsWith('battle-drive') || phase.startsWith('battle-damage')
+        ? 'trigger'
+        : phase === 'ability-pending'
+          ? 'ability'
+          : battle
+            ? 'battle'
+            : 'idle';
+  const interactionTitle = interactionVariant === 'guard'
+    ? 'Guard Step'
+    : interactionVariant === 'trigger'
+      ? phase.startsWith('battle-drive') ? 'Drive Check' : 'Damage Check'
+      : interactionVariant === 'ability'
+        ? 'Ability Resolution'
+        : battle
+          ? 'Battle Telemetry'
+          : 'Guardian Circle';
+  const interactionMetric = battle
+    ? `${battle.attackPower} ATK / ${battle.defendPower} DEF`
+    : undefined;
+
   return (
     <div className="vg-game">
-      {/* Header */}
-      <div className="vg-game__header">
-        <PhaseBar
-          phase={phase}
-          isMyTurn={isMyTurn}
-          turnPlayerName={opponentState.name}
-        />
-        <button className="vg-game__leave-btn" onClick={onLeave}>Leave</button>
-      </div>
-
       {/* Error display */}
       {error && <div className="vg-game__error">{error}</div>}
 
       {/* Main game area */}
-      <div className="vg-game__board" ref={boardRef}>
+      <Playmat ref={boardRef}>
+        <div className="vg-game__header">
+          <PhaseBar
+            phase={phase}
+            isMyTurn={isMyTurn}
+            turnPlayerName={opponentState.name}
+            turnNumber={gameState.turnNumber}
+          />
+          <button className="vg-game__leave-btn" onClick={onLeave}>Leave</button>
+        </div>
         <BattleArrow battle={battle} boardRef={boardRef} isMyTurn={isMyTurn} />
+        <PlayerHUD
+          name={opponentState.name}
+          avatarImage={opponentState.vanguardCircle ? CARD_DATABASE[opponentState.vanguardCircle.cardId]?.imagePath : undefined}
+          side="opponent"
+          isTurn={!isMyTurn}
+          turnNumber={gameState.turnNumber}
+          damage={opponentState.damageCount}
+          hand={opponentState.handCount}
+          deck={opponentState.deckCount}
+          soul={opponentState.soulCount}
+        />
         {/* Opponent info + hand (above field) */}
         <div className="vg-game__opponent-header">
           <div className="vg-game__opponent-hand">
@@ -1229,8 +1260,17 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
         {/* Opponent side - mirrored (their deck/drop on left, damage on right) */}
         <div className="vg-game__player-side vg-game__opponent-side">
           <div className="vg-game__side-zone vg-game__side-zone--left">
-            <DropZone cards={opponentState.dropZone} label="Drop" isOpponent onClick={() => { setZonePreview({ label: `${opponentState.name}'s Drop Zone`, zoneKey: 'opp-drop' }); }} />
-            <CardBack size="medium" count={opponentState.deckCount} isOpponent />
+            <Zone
+              label="Drop"
+              count={opponentState.dropZone.length}
+              variant="drop"
+              onClick={() => { setZonePreview({ label: `${opponentState.name}'s Drop Zone`, zoneKey: 'opp-drop' }); }}
+            >
+              <DropZone cards={opponentState.dropZone} label="" isOpponent />
+            </Zone>
+            <Zone label="Deck" count={opponentState.deckCount} variant="deck">
+              <CardBack size="medium" isOpponent />
+            </Zone>
           </div>
           <div className="vg-game__field-area">
             <PlayerField
@@ -1243,14 +1283,32 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
             />
           </div>
           <div className="vg-game__side-zone vg-game__side-zone--right">
-            <DamageZone cards={opponentState.damageZone} label="Damage" onClick={() => { setZonePreview({ label: `${opponentState.name}'s Damage Zone`, zoneKey: 'opp-damage' }); }} />
+            <Zone
+              label="Damage"
+              count={opponentState.damageZone.length}
+              variant="damage"
+              onClick={() => { setZonePreview({ label: `${opponentState.name}'s Damage Zone`, zoneKey: 'opp-damage' }); }}
+            >
+              <DamageZone cards={opponentState.damageZone} label="" />
+            </Zone>
+            <div className="vg-game__utility-rail" aria-label="Opponent secondary zones">
+              <Zone label="Bind" count={0} variant="utility" />
+              <Zone label="Ride" count={0} variant="utility" />
+              <Zone label="Energy" count={0} variant="utility" />
+            </div>
           </div>
         </div>
 
         {/* Middle zone - matches player-side layout for alignment */}
-        <div className="vg-game__middle-zone" ref={guardZoneRef}>
+        <InteractionOverlay
+          ref={guardZoneRef}
+          title={interactionTitle}
+          metric={interactionMetric}
+          variant={interactionVariant}
+        >
           <div className="vg-game__side-zone vg-game__side-zone--left">
-            <div className="vg-game__trigger-zone-pile">
+            <Zone label="Trigger" count={opponentState.triggerZone ? 1 : 0} variant="trigger">
+              <div className="vg-game__trigger-zone-pile">
               <div className="vg-game__trigger-zone-pile-slot">
                 {opponentState.triggerZone ? (
                   <div className={`vg-game__trigger-zone-pile-card ${CARD_DATABASE[opponentState.triggerZone.cardId]?.triggerType ? `vg-game__trigger-zone-pile-card--${CARD_DATABASE[opponentState.triggerZone.cardId]?.triggerType}` : ''}`}>
@@ -1262,7 +1320,8 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
                   </div>
                 )}
               </div>
-            </div>
+              </div>
+            </Zone>
           </div>
           {/* Guard Zone - aligned with field area center */}
           <div className="vg-game__field-area">
@@ -1291,7 +1350,8 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
             </div>
           </div>
           <div className="vg-game__side-zone vg-game__side-zone--right">
-            <div className="vg-game__trigger-zone-pile">
+            <Zone label="Trigger" count={myState.triggerZone ? 1 : 0} variant="trigger">
+              <div className="vg-game__trigger-zone-pile">
               <div className="vg-game__trigger-zone-pile-slot">
                 {myState.triggerZone ? (
                   <div className={`vg-game__trigger-zone-pile-card ${CARD_DATABASE[myState.triggerZone.cardId]?.triggerType ? `vg-game__trigger-zone-pile-card--${CARD_DATABASE[myState.triggerZone.cardId]?.triggerType}` : ''}`}>
@@ -1303,14 +1363,27 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
                   </div>
                 )}
               </div>
-            </div>
+              </div>
+            </Zone>
           </div>
-        </div>
+        </InteractionOverlay>
 
         {/* My side - Damage left, Deck+Drop right */}
         <div className="vg-game__player-side vg-game__my-side" ref={myFieldRef}>
           <div className="vg-game__side-zone vg-game__side-zone--left">
-            <DamageZone cards={myState.damageZone} label="Damage" onClick={() => { setZonePreview({ label: 'My Damage Zone', zoneKey: 'my-damage' }); }} />
+            <Zone
+              label="Damage"
+              count={myState.damageZone.length}
+              variant="damage"
+              onClick={() => { setZonePreview({ label: 'My Damage Zone', zoneKey: 'my-damage' }); }}
+            >
+              <DamageZone cards={myState.damageZone} label="" />
+            </Zone>
+            <div className="vg-game__utility-rail" aria-label="My secondary zones">
+              <Zone label="Bind" count={0} variant="utility" />
+              <Zone label="Ride" count={0} variant="utility" />
+              <Zone label="Energy" count={0} variant="utility" />
+            </div>
           </div>
           <div className="vg-game__field-area">
             <PlayerField
@@ -1329,8 +1402,17 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
             />
           </div>
           <div className="vg-game__side-zone vg-game__side-zone--right">
-            <CardBack size="medium" count={myState.deckCount} onClick={() => { setZonePreview(prev => prev?.zoneKey === 'my-deck' ? null : { label: 'My Deck', zoneKey: 'my-deck' }); }} />
-            <DropZone cards={myState.dropZone} label="Drop" onClick={() => { setZonePreview({ label: 'My Drop Zone', zoneKey: 'my-drop' }); }} />
+            <Zone label="Deck" count={myState.deckCount} variant="deck">
+              <CardBack size="medium" />
+            </Zone>
+            <Zone
+              label="Drop"
+              count={myState.dropZone.length}
+              variant="drop"
+              onClick={() => { setZonePreview({ label: 'My Drop Zone', zoneKey: 'my-drop' }); }}
+            >
+              <DropZone cards={myState.dropZone} label="" />
+            </Zone>
           </div>
         </div>
 
@@ -1347,10 +1429,18 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
           />
         </div>
 
-      </div>
-
-      {/* Action panel - fixed right side */}
-      <div className="vg-game__action-area" ref={actionAreaRef}>
+        <PlayerHUD
+          name={myState.name}
+          avatarImage={myState.vanguardCircle ? CARD_DATABASE[myState.vanguardCircle.cardId]?.imagePath : undefined}
+          side="self"
+          isTurn={isMyTurn}
+          turnNumber={gameState.turnNumber}
+          damage={myState.damageCount}
+          hand={myState.hand.length}
+          deck={myState.deckCount}
+          soul={myState.soulCount}
+        />
+        <div className="vg-game__action-area" ref={actionAreaRef}>
         <ActionPanel
           gameState={gameState}
           myId={myId}
@@ -1398,6 +1488,7 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
           }, 0)}
         />
       </div>
+      </Playmat>
 
       {/* Card preview panel */}
       {previewCard && (() => {
@@ -1453,47 +1544,6 @@ export const VanguardGame: React.FC<VanguardGameProps> = ({
             <div className="vg-game__zone-preview-list">
               {resolvedZonePreviewCards.length === 0 ? (
                 <div className="vg-game__zone-preview-empty">No cards</div>
-              ) : zonePreview.zoneKey === 'my-deck' ? (
-                // Deck view: grouped by card with counts, sorted by grade
-                (() => {
-                  const grouped: { cardId: string; count: number }[] = [];
-                  const countMap: Record<string, number> = {};
-                  for (const card of resolvedZonePreviewCards) {
-                    countMap[card.cardId] = (countMap[card.cardId] || 0) + 1;
-                  }
-                  for (const cardId of Object.keys(countMap)) {
-                    grouped.push({ cardId, count: countMap[cardId] });
-                  }
-                  grouped.sort((a, b) => {
-                    const defA = CARD_DATABASE[a.cardId];
-                    const defB = CARD_DATABASE[b.cardId];
-                    if (!defA || !defB) return 0;
-                    if (defA.grade !== defB.grade) return defA.grade - defB.grade;
-                    return defA.name.localeCompare(defB.name);
-                  });
-                  return grouped.map(({ cardId, count }) => {
-                    const def = CARD_DATABASE[cardId];
-                    if (!def) return null;
-                    return (
-                      <div
-                        key={cardId}
-                        className="vg-game__zone-preview-card"
-                      >
-                        <img
-                          src={def.imagePath}
-                          alt={def.name}
-                          className="vg-game__zone-preview-card-image"
-                          draggable={false}
-                        />
-                        <div className="vg-game__zone-preview-card-info">
-                          <span className="vg-game__zone-preview-card-name">{def.name}</span>
-                          <span className="vg-game__zone-preview-card-stats">G{def.grade} / {def.power}</span>
-                          <span className="vg-game__zone-preview-card-count">x{count}</span>
-                        </div>
-                      </div>
-                    );
-                  });
-                })()
               ) : (
                 resolvedZonePreviewCards.map((card) => {
                   const def = CARD_DATABASE[card.cardId];

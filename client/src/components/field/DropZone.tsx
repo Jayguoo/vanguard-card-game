@@ -10,7 +10,7 @@ interface DropZoneProps {
   onClick?: () => void;
 }
 
-export const DropZone: React.FC<DropZoneProps> = ({ cards, label, isOpponent = false, onClick }) => {
+export const DropZone = React.memo<DropZoneProps>(({ cards, label, isOpponent = false, onClick }) => {
   const count = cards.length;
   const topCard = count > 0 ? cards[count - 1] : null;
 
@@ -36,4 +36,5 @@ export const DropZone: React.FC<DropZoneProps> = ({ cards, label, isOpponent = f
       </div>
     </div>
   );
-};
+});
+DropZone.displayName = 'DropZone';

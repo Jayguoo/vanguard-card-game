@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -81,8 +82,79 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+type FileMtime = {
+  path: string;
+  mtimeMs: number;
+};
+
+function findLatestFile(targetPath: string, extensions?: Set<string>): FileMtime | null {
+  if (!fs.existsSync(targetPath)) return null;
+
+  const stat = fs.statSync(targetPath);
+  if (stat.isFile()) {
+    if (extensions && !extensions.has(path.extname(targetPath).toLowerCase())) return null;
+    return { path: targetPath, mtimeMs: stat.mtimeMs };
+  }
+
+  if (!stat.isDirectory()) return null;
+
+  let latest: FileMtime | null = null;
+  for (const entry of fs.readdirSync(targetPath, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name === 'dist') continue;
+    const child = findLatestFile(path.join(targetPath, entry.name), extensions);
+    if (child && (!latest || child.mtimeMs > latest.mtimeMs)) {
+      latest = child;
+    }
+  }
+  return latest;
+}
+
+function getRepoRoot(): string {
+  const compiledRoot = path.resolve(__dirname, '..', '..', '..');
+  if (fs.existsSync(path.join(compiledRoot, 'client'))) return compiledRoot;
+  return path.resolve(__dirname, '..');
+}
+
+function getStaleLocalClientBuildMessage(clientBuildPath: string): string | null {
+  const repoRoot = getRepoRoot();
+  const localClientDist = path.join(repoRoot, 'client', 'dist');
+
+  try {
+    if (fs.realpathSync(clientBuildPath).toLowerCase() !== fs.realpathSync(localClientDist).toLowerCase()) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
+  const latestSource = findLatestFile(path.join(repoRoot, 'client', 'src'), new Set(['.ts', '.tsx', '.css']));
+  const latestBundle = findLatestFile(path.join(clientBuildPath, 'assets'), new Set(['.js']));
+  if (!latestSource || !latestBundle) return null;
+
+  if (latestSource.mtimeMs <= latestBundle.mtimeMs + 2000) return null;
+
+  return [
+    'Local client build is stale.',
+    `Newest source: ${latestSource.path}`,
+    `Newest bundle: ${latestBundle.path}`,
+    'Rebuild client/dist before launching the compiled server.',
+  ].join('\n');
+}
+
 // Serve client static files in production
 const clientBuildPath = path.join(__dirname, '..', 'client-dist');
+const staleLocalClientBuildMessage = getStaleLocalClientBuildMessage(clientBuildPath);
+if (staleLocalClientBuildMessage) {
+  console.error(staleLocalClientBuildMessage);
+}
+
+app.use((req, res, next) => {
+  if (!staleLocalClientBuildMessage || req.path === '/health' || req.path.startsWith('/socket.io')) {
+    return next();
+  }
+  res.status(503).type('text/plain').send(staleLocalClientBuildMessage);
+});
+
 app.use(express.static(clientBuildPath));
 app.get('*', (_req, res, next) => {
   // Only serve index.html for non-API/non-socket routes

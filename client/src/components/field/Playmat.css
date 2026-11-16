@@ -1,0 +1,360 @@
+.playmat-viewport {
+  --playmat-scale: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: clip;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(0, 197, 224, 0.08), transparent 42%),
+    #000307;
+}
+
+.playmat-stage {
+  width: calc(1280px * var(--playmat-scale));
+  height: calc(720px * var(--playmat-scale));
+  margin: auto;
+  position: relative;
+}
+
+.playmat {
+  --dd2-cyan: #35d9ed;
+  --dd2-cyan-bright: #bff9ff;
+  --dd2-ink: #01060b;
+  --dd2-panel: rgba(3, 14, 22, 0.94);
+  --dd2-pink: #ff2c88;
+  --playmat-cyan: var(--dd2-cyan);
+  --playmat-cyan-dim: rgba(53, 217, 237, 0.32);
+  --playmat-amber: #f3b541;
+  --playmat-red: #ff5365;
+  width: 1280px;
+  height: 720px;
+  aspect-ratio: 16 / 9;
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  transform: scale(var(--playmat-scale));
+  transform-origin: top left;
+  display: block;
+  color: #e8f8ff;
+  background:
+    linear-gradient(90deg, transparent 49.88%, rgba(255, 44, 136, 0.52) 49.94%, rgba(53, 217, 237, 0.42) 50.06%, transparent 50.12%),
+    repeating-linear-gradient(30deg, rgba(53, 217, 237, 0.045) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(-30deg, rgba(53, 217, 237, 0.04) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(90deg, rgba(255, 44, 136, 0.026) 0 1px, transparent 1px 59px),
+    radial-gradient(ellipse at 50% 50%, rgba(8, 91, 104, 0.45) 0 12%, rgba(2, 29, 39, 0.86) 38%, rgba(0, 4, 8, 0.99) 76%),
+    var(--dd2-ink);
+  background-size: auto, 118px 68px, 118px 68px, 118px 68px, auto, auto;
+  border: 1px solid rgba(53, 217, 237, 0.28);
+  box-shadow: inset 0 0 96px rgba(0, 0, 0, 0.9);
+}
+
+.playmat::before,
+.playmat::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.playmat .vg-card--medium {
+  width: 72px;
+  height: 101px;
+}
+
+.playmat::before {
+  top: 208px;
+  left: 490px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 17%, rgba(53, 217, 237, 0.22) 17.5% 18.4%, transparent 19% 31%, rgba(243, 181, 65, 0.22) 31.5% 32.4%, transparent 33% 45%, rgba(53, 217, 237, 0.16) 45.5% 46.3%, transparent 47%),
+    conic-gradient(from 45deg, rgba(53, 217, 237, 0.08), transparent 12%, rgba(243, 181, 65, 0.08) 26%, transparent 42%, rgba(53, 217, 237, 0.07) 64%, transparent 82%);
+  opacity: 0.78;
+}
+
+.playmat::after {
+  inset: 0;
+  opacity: 0.2;
+  background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.22) 50%);
+  background-size: 100% 4px;
+}
+
+.playmat-zone {
+  min-width: 0;
+  color: #b9deea;
+}
+
+.playmat-zone__header {
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 5px;
+  color: #89b7c7;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(54, 215, 245, 0.16);
+}
+
+.playmat-zone__header strong {
+  color: var(--playmat-cyan);
+  font-size: 10px;
+}
+
+.playmat-zone__content {
+  min-height: 0;
+}
+
+.playmat-zone--interactive {
+  cursor: pointer;
+  outline: none;
+}
+
+.playmat-zone--interactive:hover,
+.playmat-zone--interactive:focus-visible {
+  background: rgba(54, 215, 245, 0.055);
+  box-shadow: inset 0 0 0 1px rgba(54, 215, 245, 0.32);
+}
+
+.playmat-zone--damage .playmat-zone__header strong {
+  color: #ff7785;
+}
+
+.playmat-zone--trigger .playmat-zone__header strong {
+  color: var(--playmat-amber);
+}
+
+.playmat-zone .damage-zone,
+.playmat-zone .drop-zone,
+.playmat-zone .vg-game__trigger-zone-pile {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.player-hud {
+  position: absolute;
+  z-index: 32;
+  width: 440px;
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  font-family: Consolas, 'Courier New', monospace;
+  color: #a8cfdd;
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.72));
+}
+
+.player-hud--opponent {
+  top: 8px;
+  right: 12px;
+  flex-direction: row-reverse;
+}
+
+.player-hud--self {
+  bottom: 2px;
+  left: 8px;
+}
+
+.player-hud__avatar {
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 96px;
+  border: 5px solid #122a36;
+  border-radius: 50%;
+  color: #effdff;
+  background: radial-gradient(circle at 40% 32%, #16889a, #05202b 68%);
+  outline: 3px solid var(--dd2-cyan);
+  font-family: Impact, Haettenschweiler, sans-serif;
+  font-size: 40px;
+  font-style: italic;
+  text-shadow: 2px 2px 0 #001016;
+}
+
+.player-hud--self .player-hud__avatar {
+  outline-color: var(--dd2-pink);
+  background: radial-gradient(circle at 40% 32%, #9c1f57, #250817 68%);
+}
+
+.player-hud__avatar-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 20%;
+}
+
+.player-hud__panel {
+  flex: 1;
+  min-width: 0;
+  margin-left: -7px;
+  padding: 9px 15px 8px 18px;
+  background: linear-gradient(100deg, rgba(4, 17, 26, 0.98), rgba(10, 34, 43, 0.92));
+  border-block: 2px solid rgba(53, 217, 237, 0.52);
+  clip-path: polygon(0 0, 100% 0, 94% 100%, 0 100%);
+}
+
+.player-hud--opponent .player-hud__panel {
+  margin-right: -7px;
+  margin-left: 0;
+  padding: 9px 18px 8px 15px;
+  clip-path: polygon(6% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.player-hud--active {
+  color: #e9fbff;
+}
+
+.player-hud--active .player-hud__panel {
+  background: linear-gradient(100deg, rgba(5, 24, 35, 0.99), rgba(9, 58, 68, 0.94));
+}
+
+.player-hud__identity,
+.player-hud__telemetry,
+.player-hud__telemetry div {
+  display: flex;
+  align-items: center;
+}
+
+.player-hud__identity {
+  justify-content: space-between;
+  gap: 7px;
+  min-width: 0;
+}
+
+.player-hud__identity strong {
+  color: #f1fbff;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+
+.player-hud__identity > span:last-child {
+  color: #9bd3dd;
+  font-size: 9px;
+}
+
+.player-hud__signal {
+  width: 7px;
+  height: 7px;
+  background: #54717c;
+  box-shadow: 0 0 0 2px rgba(84, 113, 124, 0.18);
+}
+
+.player-hud--active .player-hud__signal {
+  background: var(--playmat-cyan);
+  box-shadow: 0 0 8px rgba(54, 215, 245, 0.72);
+}
+
+.player-hud__telemetry {
+  justify-content: space-between;
+  margin: 5px 0 0;
+  gap: 8px;
+}
+
+.player-hud__telemetry div {
+  gap: 5px;
+}
+
+.player-hud__telemetry dt {
+  color: #a9cad1;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.player-hud__telemetry dd {
+  margin: 0;
+  color: #dff8ff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.interaction-overlay {
+  position: absolute;
+  top: 44%;
+  left: 50%;
+  z-index: 8;
+  width: 820px;
+  height: 112px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  transform: translate(-50%, -50%);
+  background: transparent;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.interaction-overlay__header {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  color: #b9edf4;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.interaction-overlay__header strong {
+  color: var(--playmat-cyan);
+  letter-spacing: 0.06em;
+}
+
+.interaction-overlay__content {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 140px 1fr 140px;
+  align-items: center;
+  justify-items: center;
+  padding: 0;
+}
+
+.interaction-overlay--battle,
+.interaction-overlay--guard {
+  background: radial-gradient(circle at 50% 50%, rgba(243, 181, 65, 0.09), transparent 34%);
+}
+
+.interaction-overlay--battle .interaction-overlay__header strong,
+.interaction-overlay--guard .interaction-overlay__header strong {
+  color: var(--playmat-amber);
+}
+
+.interaction-overlay--trigger {
+  border-color: rgba(255, 83, 101, 0.36);
+}
+
+@media (max-width: 900px) {
+  .playmat-viewport {
+    overscroll-behavior: contain;
+  }
+
+  .playmat-stage {
+    margin-inline: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playmat *,
+  .playmat *::before,
+  .playmat *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

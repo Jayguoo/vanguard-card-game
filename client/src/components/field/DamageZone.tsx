@@ -9,7 +9,7 @@ interface DamageZoneProps {
   onClick?: () => void;
 }
 
-export const DamageZone: React.FC<DamageZoneProps> = ({ cards, label, onClick }) => {
+export const DamageZone = React.memo<DamageZoneProps>(({ cards, label, onClick }) => {
   const count = cards.length;
   const isDanger = count >= 6;
 
@@ -25,7 +25,7 @@ export const DamageZone: React.FC<DamageZoneProps> = ({ cards, label, onClick })
       </div>
       <div
         className="damage-zone__stack"
-        style={cards.length > 1 ? { height: `${80 + (cards.length - 1) * 25}px` } : undefined}
+        style={cards.length > 1 ? { height: `${66 + (cards.length - 1) * 14}px` } : undefined}
       >
         {cards.length === 0 ? (
           <div className="damage-zone__empty">{label}</div>
@@ -34,7 +34,7 @@ export const DamageZone: React.FC<DamageZoneProps> = ({ cards, label, onClick })
             <div
               key={card.instanceId}
               className="damage-zone__card"
-              style={{ top: `${index * 25}px`, zIndex: index }}
+              style={{ top: `${index * 14}px`, zIndex: index }}
             >
               <VanguardCard
                 card={card}
@@ -47,4 +47,5 @@ export const DamageZone: React.FC<DamageZoneProps> = ({ cards, label, onClick })
       </div>
     </div>
   );
-};
+});
+DamageZone.displayName = 'DamageZone';

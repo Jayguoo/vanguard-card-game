@@ -1,36 +1,83 @@
 .vg-game {
+  --game-bg: #02060d;
+  --game-panel: rgba(4, 13, 24, 0.97);
+  --game-panel-alt: rgba(8, 24, 36, 0.96);
+  --game-header: rgba(2, 8, 16, 0.98);
+  --game-header-dim: rgba(2, 8, 16, 0.82);
+  --game-surface: rgba(54, 215, 245, 0.035);
+  --game-surface-border: rgba(54, 215, 245, 0.18);
+  --game-surface-faint: rgba(54, 215, 245, 0.025);
+  --game-surface-hover: rgba(54, 215, 245, 0.1);
+  --game-middle: rgba(2, 12, 22, 0.82);
+  --game-text: #edfaff;
+  --game-text-bright: #ffffff;
+  --game-text-name: #63e3fa;
+  --game-text-secondary: rgba(224, 246, 255, 0.9);
+  --game-text-dim: rgba(164, 203, 216, 0.78);
+  --game-text-muted: rgba(131, 168, 181, 0.7);
+  --game-text-faint: rgba(121, 163, 178, 0.62);
+  --game-text-empty: rgba(134, 188, 204, 0.38);
+  --game-accent: rgba(54, 215, 245, 0.96);
+  --game-accent-mid: rgba(54, 215, 245, 0.7);
+  --game-accent-dim: rgba(54, 215, 245, 0.58);
+  --game-accent-subtle: rgba(54, 215, 245, 0.46);
+  --game-accent-bg: rgba(54, 215, 245, 0.1);
+  --game-accent-bg-dim: rgba(54, 215, 245, 0.055);
+  --game-accent-solid: #63e3fa;
+  --game-border: rgba(54, 215, 245, 0.34);
+  --game-border-light: rgba(54, 215, 245, 0.2);
+  --game-border-lighter: rgba(54, 215, 245, 0.13);
+  --game-border-subtle: rgba(54, 215, 245, 0.1);
+  --game-card-power-bg: rgba(1, 8, 16, 0.92);
+  --game-card-power-text: #e9fbff;
+  --game-card-power-border: rgba(54, 215, 245, 0.42);
+  --game-card-count-bg: rgba(1, 8, 16, 0.9);
+  --game-card-count-text: #e9fbff;
+  --game-card-count-border: rgba(54, 215, 245, 0.38);
+  --game-gc-bg: radial-gradient(circle, rgba(21, 76, 89, 0.34), rgba(2, 12, 22, 0.92) 68%);
+  --game-gc-border: rgba(54, 215, 245, 0.38);
+  --game-gc-inner-border: rgba(54, 215, 245, 0.17);
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--game-bg);
   color: var(--game-text);
   overflow: hidden;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: Bahnschrift, 'Segoe UI Variable', 'Segoe UI', sans-serif;
 }
 
 .vg-game__header {
+  position: absolute;
+  inset: 0;
+  z-index: 36;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 4px 12px;
-  background: var(--game-header);
-  border-bottom: 1px solid var(--game-border-light);
-  z-index: 10;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
 }
 
 .vg-game__leave-btn {
-  padding: 4px 12px;
-  background: rgba(255, 60, 60, 0.2);
-  border: 1px solid rgba(255, 60, 60, 0.4);
-  color: #ff8888;
-  border-radius: 4px;
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  min-width: 54px;
+  padding: 5px 10px;
+  background: rgba(1, 8, 13, 0.94);
+  border: 1px solid rgba(230, 244, 248, 0.55);
+  color: #eefcff;
+  border-radius: 2px;
   cursor: pointer;
   font-size: 12px;
+  pointer-events: auto;
 }
 
 .vg-game__leave-btn:hover {
-  background: rgba(255, 60, 60, 0.4);
+  border-color: #ff477a;
+  background: rgba(92, 7, 30, 0.94);
 }
 
 .vg-game__error {
@@ -63,29 +110,33 @@
 
 /* Player side layout: Damage | Field | Deck+Drop */
 .vg-game__player-side {
-  display: flex;
+  position: absolute;
+  left: 50%;
+  z-index: 5;
+  width: 1120px;
+  height: 258px;
+  display: grid;
+  grid-template-columns: 164px 612px 164px;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 6px 12px;
-  flex: 0 0 auto;
+  gap: 60px;
+  padding: 0;
+  transform: translateX(-50%);
 }
 
 /* Opponent header (name + hand) above the field */
 .vg-game__opponent-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 4px 12px 2px;
-  flex: 0 0 auto;
+  display: none;
 }
 
 .vg-game__opponent-side {
-  border-bottom: 1px solid var(--game-border-subtle);
+  top: 6px;
+  transform: translateX(-50%) scale(0.9);
+  transform-origin: 50% 0;
 }
 
 .vg-game__my-side {
-  border-top: 1px solid var(--game-border-subtle);
+  bottom: 88px;
 }
 
 /* My footer (soul info) below the field */
@@ -102,15 +153,73 @@
   flex-direction: column;
   align-items: center;
   flex: 0 0 auto;
+  position: relative;
+  z-index: 6;
 }
 
 /* Side zones (Damage on left, Deck+Drop on right) */
 .vg-game__side-zone {
-  flex: 0 0 130px;
+  width: 154px;
+  height: 212px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 3px;
+  position: relative;
+  z-index: 4;
+}
+
+.vg-game__side-zone > .playmat-zone {
+  width: 100%;
+  padding: 3px 5px 5px;
+  border: 1px solid rgba(181, 231, 239, 0.3);
+  background: linear-gradient(145deg, rgba(16, 35, 43, 0.92), rgba(1, 7, 12, 0.98) 66%);
+  box-shadow: inset 0 0 18px rgba(53, 217, 237, 0.05), 0 5px 12px rgba(0, 0, 0, 0.38);
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+.vg-game__side-zone .playmat-zone--deck,
+.vg-game__side-zone .playmat-zone--drop {
+  flex: 0 0 105px;
+}
+
+.vg-game__side-zone .playmat-zone--deck .vg-card--medium,
+.vg-game__side-zone .playmat-zone--drop .vg-card--medium {
+  width: 64px;
+  height: 90px;
+}
+
+.vg-game__side-zone .playmat-zone--deck .playmat-zone__content,
+.vg-game__side-zone .playmat-zone--drop .playmat-zone__content,
+.vg-game__side-zone .playmat-zone--deck .drop-zone__pile,
+.vg-game__side-zone .playmat-zone--drop .drop-zone__pile {
+  width: 64px;
+  height: 88px;
+  margin-inline: auto;
+}
+
+.vg-game__utility-rail {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid rgba(54, 215, 245, 0.13);
+  background: rgba(1, 8, 13, 0.86);
+}
+
+.vg-game__utility-rail .playmat-zone__header {
+  height: 23px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  padding: 1px;
+  font-size: 6px;
+  letter-spacing: 0.03em;
+  border-bottom: 0;
+}
+
+.vg-game__utility-rail .playmat-zone__header strong {
+  font-size: 7px;
 }
 
 .vg-game__side-zone--left {
@@ -119,6 +228,11 @@
 
 .vg-game__side-zone--right {
   justify-content: flex-start;
+}
+
+.interaction-overlay .vg-game__side-zone {
+  height: 84px;
+  justify-content: center;
 }
 
 /* Middle zone — same layout as player-side for alignment */
@@ -139,21 +253,21 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px 0;
-  min-height: 60px;
+  padding: 1px 0;
+  min-height: 66px;
 }
 
 /* When guardians are present, show more prominently */
 .vg-game__guard-zone--active {
-  padding: 12px 24px;
+  padding: 2px 16px;
 }
 
 /* Guardian Circle — playmat-style circle zone */
 .vg-game__gc-circle {
-  width: 120px;
-  height: 120px;
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
-  border: 3px solid var(--game-gc-border);
+  border: 1px solid var(--game-gc-border);
   background: var(--game-gc-bg);
   display: flex;
   align-items: center;
@@ -246,11 +360,13 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  min-width: 96px;
-  padding: 6px 4px;
-  background: var(--game-surface);
-  border: 1px solid var(--game-surface-border);
-  border-radius: 6px;
+  min-width: 112px;
+  padding: 4px 6px;
+  background: linear-gradient(145deg, rgba(18, 34, 41, 0.94), rgba(1, 6, 10, 0.98));
+  border: 1px solid rgba(199, 232, 238, 0.34);
+  border-radius: 2px;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.4), inset 0 0 16px rgba(53, 217, 237, 0.05);
+  transform: skewX(-3deg);
 }
 
 .vg-game__trigger-zone-pile-label {
@@ -264,8 +380,8 @@
 
 .vg-game__trigger-zone-pile-slot {
   position: relative;
-  width: 112px;
-  height: 80px;
+  width: 102px;
+  height: 72px;
 }
 
 .vg-game__trigger-zone-pile-card {
@@ -291,16 +407,16 @@
 /* Trigger type glows — semantic, same in both themes */
 .vg-game__trigger-zone-pile-card--critical .vg-card {
   box-shadow:
-    0 0 8px rgba(255, 50, 50, 0.6),
-    0 0 20px rgba(255, 50, 50, 0.3);
-  border-color: rgba(255, 50, 50, 0.5);
+    0 0 8px rgba(255, 214, 67, 0.72),
+    0 0 20px rgba(255, 214, 67, 0.35);
+  border-color: rgba(255, 214, 67, 0.64);
 }
 
 .vg-game__trigger-zone-pile-card--draw .vg-card {
   box-shadow:
-    0 0 8px rgba(50, 120, 255, 0.6),
-    0 0 20px rgba(50, 120, 255, 0.3);
-  border-color: rgba(50, 120, 255, 0.5);
+    0 0 8px rgba(255, 79, 94, 0.7),
+    0 0 20px rgba(255, 79, 94, 0.34);
+  border-color: rgba(255, 79, 94, 0.62);
 }
 
 .vg-game__trigger-zone-pile-card--stand .vg-card {
@@ -315,6 +431,13 @@
     0 0 8px rgba(50, 220, 100, 0.6),
     0 0 20px rgba(50, 220, 100, 0.3);
   border-color: rgba(50, 220, 100, 0.5);
+}
+
+.vg-game__trigger-zone-pile-card--front .vg-card {
+  box-shadow:
+    0 0 8px rgba(255, 85, 184, 0.72),
+    0 0 20px rgba(255, 85, 184, 0.36);
+  border-color: rgba(255, 85, 184, 0.62);
 }
 
 @keyframes trigger-pile-enter {
@@ -367,12 +490,13 @@
 .vg-game__opponent-hand {
   display: flex;
   justify-content: center;
-  padding: 2px 0;
+  align-items: flex-end;
+  padding: 0;
 }
 
 .vg-game__opponent-hand-card {
   position: relative;
-  margin: 0 -4px;
+  margin: 0 -9px;
   transition: transform 0.2s ease, margin 0.2s ease;
 }
 
@@ -407,19 +531,40 @@
 }
 
 .vg-game__hand-area {
-  flex: 0 0 auto;
+  position: absolute;
+  left: 50%;
+  bottom: -24px;
+  z-index: 24;
+  width: 780px;
+  height: 132px;
   display: flex;
+  align-items: flex-start;
   justify-content: center;
-  padding: 4px 16px;
+  padding: 0;
+  overflow: visible;
+  transform: translateX(-50%);
 }
 
 .vg-game__action-area {
-  position: fixed;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 50;
-  width: 220px;
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+@media (max-width: 1099px) {
+  .vg-game__card-preview {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vg-game,
+  .vg-game * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .vg-game__log {

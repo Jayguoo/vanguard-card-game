@@ -173,6 +173,12 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
                 Move to Battle
               </button>
             )}
+            <button
+              className="action-panel__btn action-panel__btn--secondary"
+              onClick={() => onAction({ type: 'endTurn' })}
+            >
+              End Turn
+            </button>
           </div>
         ) : (
           <div className="action-panel__group">
@@ -527,7 +533,9 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
                   {pending.description}
                 </p>
                 <p className="action-panel__hint" style={{ fontSize: '0.85em', opacity: 0.8 }}>
-                  Select {pending.minSelections ?? 1} card(s) from your hand to discard.
+                  {pending.description.includes('return to your deck')
+                    ? `Select ${pending.minSelections ?? 1} card(s) from your hand to return.`
+                    : `Select ${pending.minSelections ?? 1} card(s) from your hand to discard.`}
                 </p>
               </div>
             );
@@ -571,8 +579,9 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({
 
   return (
     <div className="action-panel">
+      <div className="action-panel__information-label">Information</div>
       <div className="action-panel__phase-label">{getPhaseLabel(phase)}</div>
-      {renderPhaseActions()}
+      <div className="action-panel__commands">{renderPhaseActions()}</div>
     </div>
   );
 };

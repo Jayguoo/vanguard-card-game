@@ -17,6 +17,7 @@ import {
   UserStats,
   FriendInfo,
 } from '../shared/types';
+import { GameActionCoordinator } from './gameActionCoordinator';
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -41,6 +42,7 @@ export function useSocket(
   onAuthExpired?: () => void,
 ) {
   const socketRef = useRef<TypedSocket | null>(null);
+  const gameActionCoordinatorRef = useRef(new GameActionCoordinator());
   const onAuthVerifiedRef = useRef(onAuthVerified);
   const onAuthExpiredRef = useRef(onAuthExpired);
   onAuthVerifiedRef.current = onAuthVerified;
@@ -87,6 +89,7 @@ export function useSocket(
     }, 5000);
 
     socket.on('disconnect', () => {
+      gameActionCoordinatorRef.current.cancel('Disconnected');
       setAppState(prev => ({ ...prev, isConnected: false }));
     });
 
@@ -123,6 +126,7 @@ export function useSocket(
     // Game state updates
     socket.on('game:stateUpdate', (state) => {
       setAppState(prev => ({ ...prev, gameState: state }));
+      gameActionCoordinatorRef.current.onStateUpdate();
     });
 
     // Auth session verification
@@ -143,7 +147,11 @@ export function useSocket(
       }, 3000);
     });
 
-    return () => { clearInterval(pingInterval); socket.disconnect(); };
+    return () => {
+      clearInterval(pingInterval);
+      gameActionCoordinatorRef.current.cancel('Disconnected');
+      socket.disconnect();
+    };
   }, [token]);
 
   // Room actions
@@ -227,14 +235,21 @@ export function useSocket(
 
   // Game action
   const sendAction = useCallback((action: GameAction): Promise<ActionResult> => {
-    return new Promise(resolve => {
-      if (!socketRef.current) {
-        resolve({ success: false, error: 'Not connected' });
-        return;
+    const socket = socketRef.current;
+    if (!socket) {
+      return Promise.resolve({ success: false, error: 'Not connected' });
+    }
+
+    return gameActionCoordinatorRef.current.dispatch(callback => {
+      socket.emit('game:action', action, callback);
+    }).then(result => {
+      if (!result.success && result.error && result.error !== 'Action already in progress') {
+        setAppState(prev => ({ ...prev, error: result.error! }));
+        setTimeout(() => {
+          setAppState(prev => ({ ...prev, error: null }));
+        }, 3000);
       }
-      socketRef.current.emit('game:action', action, result => {
-        resolve(result);
-      });
+      return result;
     });
   }, []);
 

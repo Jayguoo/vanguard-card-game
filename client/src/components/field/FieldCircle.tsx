@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { PublicCardInstance, FieldPosition } from '../../shared/types';
+import { CARD_DATABASE } from '../../shared/cardDatabase';
 import { VanguardCard } from '../cards/VanguardCard';
 import './FieldCircle.css';
 
@@ -13,6 +14,7 @@ interface FieldCircleProps {
   hasAbilityGlow?: boolean;
   isDropTarget?: boolean;
   powerOverride?: number;
+  underlay?: React.ReactNode;
   onClick?: () => void;
   onCardClick?: (card: PublicCardInstance) => void;
   onCardRightClick?: (card: PublicCardInstance, e: React.MouseEvent) => void;
@@ -20,7 +22,7 @@ interface FieldCircleProps {
   onDrop?: (position: FieldPosition) => void;
 }
 
-export const FieldCircle: React.FC<FieldCircleProps> = ({
+export const CardSlot = React.memo<FieldCircleProps>(({
   card,
   label,
   position,
@@ -30,6 +32,7 @@ export const FieldCircle: React.FC<FieldCircleProps> = ({
   hasAbilityGlow = false,
   isDropTarget = false,
   powerOverride,
+  underlay,
   onClick,
   onCardClick,
   onCardRightClick,
@@ -104,6 +107,20 @@ export const FieldCircle: React.FC<FieldCircleProps> = ({
     }
   };
 
+  const cardDefinition = card ? CARD_DATABASE[card.cardId] : undefined;
+  const displayedPower = card && cardDefinition
+    ? powerOverride ?? cardDefinition.power
+      + card.turnPowerModifier
+      + card.battlePowerModifier
+      + card.continuousPowerModifier
+    : 0;
+  const powerDelta = cardDefinition ? displayedPower - cardDefinition.power : 0;
+  const transformClasses = [
+    'field-circle__card-transform',
+    isOpponent ? 'field-circle__card-transform--opponent' : '',
+    card?.isRested ? 'field-circle__card-transform--rested' : '',
+  ].filter(Boolean).join(' ');
+
   return (
     <div
       className={classes}
@@ -115,18 +132,34 @@ export const FieldCircle: React.FC<FieldCircleProps> = ({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {underlay && <div className="field-circle__underlay">{underlay}</div>}
       {card ? (
-        <VanguardCard
-          card={card}
-          size="medium"
-          selected={isSelected}
-          highlighted={isHighlighted}
-          abilityGlow={hasAbilityGlow}
-          showPowerOverlay={true}
-          powerOverride={powerOverride}
-          onMouseEnter={onCardHover ? () => onCardHover(card) : undefined}
-          onMouseLeave={onCardHover ? () => onCardHover(null) : undefined}
-        />
+        <>
+          <div className={transformClasses}>
+            <VanguardCard
+              card={card}
+              size="medium"
+              selected={isSelected}
+              highlighted={isHighlighted}
+              abilityGlow={hasAbilityGlow}
+              showPowerOverlay={false}
+              rotateWithState={false}
+              onMouseEnter={onCardHover ? () => onCardHover(card) : undefined}
+              onMouseLeave={onCardHover ? () => onCardHover(null) : undefined}
+            />
+          </div>
+          <div className="field-circle__telemetry" aria-label={`${card.isRested ? 'Rest' : 'Stand'}, ${displayedPower} power`}>
+            <span className={`field-circle__state field-circle__state--${card.isRested ? 'rest' : 'stand'}`}>
+              {card.isRested ? 'REST' : 'STAND'}
+            </span>
+            <strong>{displayedPower}</strong>
+            {powerDelta !== 0 && (
+              <span className={powerDelta > 0 ? 'field-circle__delta--positive' : 'field-circle__delta--negative'}>
+                {powerDelta > 0 ? '+' : ''}{powerDelta}
+              </span>
+            )}
+          </div>
+        </>
       ) : (
         <div className="field-circle__empty">
           <span className="field-circle__label">{label}</span>
@@ -134,4 +167,7 @@ export const FieldCircle: React.FC<FieldCircleProps> = ({
       )}
     </div>
   );
-};
+});
+CardSlot.displayName = 'CardSlot';
+
+export const FieldCircle = CardSlot;
